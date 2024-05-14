@@ -229,16 +229,19 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
         int vid;
         int pid;
+        int baudrate;
         String driver_type = "CdcAcmSerialDriver";
         if (opts.has("vid") && opts.has("pid")) {
             Object o_vid = opts.opt("vid"); //can be an integer Number or a hex String
             Object o_pid = opts.opt("pid"); //can be an integer Number or a hex String
+            Object o_baudrate = opts.opt("baudRate"); //can be an integer Number or a hex String
             vid = o_vid instanceof Number ? ((Number) o_vid).intValue() : Integer.parseInt((String) o_vid, 16);
             pid = o_pid instanceof Number ? ((Number) o_pid).intValue() : Integer.parseInt((String) o_pid, 16);
-            //            String driver = opts.has("driver") ? (String) opts.opt("driver") : "CdcAcmSerialDriver";
+            baudrate = o_baudrate instanceof Number ? ((Number) o_baudrate).intValue() : Integer.parseInt((String) o_baudrate, 16);
         } else {
             vid = 0;
             pid = 0;
+            baudrate = 2000000;
         }
 
         if (opts.has("driver")){
@@ -284,7 +287,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             Log.d(TAG, "Attempting to open port.");
             usbSerialPort.open(usbConnection);
             try {
-                usbSerialPort.setParameters(2000000, 8, 1, 0);
+                usbSerialPort.setParameters(baudrate, 8, 1, 0);
             } catch (UnsupportedOperationException e) {
 //                status("Setting serial parameters failed: " + e.getMessage());
             }
