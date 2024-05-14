@@ -124,16 +124,19 @@ public class Serial extends CordovaPlugin implements SerialListener {
         JSONObject arg_object = args.optJSONObject(0);
         // request permission
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
+            this.command = "requestPermission";
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
             requestPermission(opts, callbackContext);
             return true;
         }
         else if (ACTION_OPEN.equals(action)) {
+            this.command = "open";
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
             open(opts, callbackContext);
             return true;
         }
         else if (ACTION_CLOSE.equals(action)) {
+            this.command = "close";
             disconnect();
             return true;
         }
@@ -448,7 +451,7 @@ public void onStart() {
                     }
                     break;
                 }
-                default: {
+                case "get_status\n": {
                     String s = new String(result, StandardCharsets.UTF_8);
                     Log.d(TAG, "" + s);
                     if (s.contains("\n")) {
