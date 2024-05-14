@@ -103,6 +103,18 @@ public class Serial extends CordovaPlugin implements SerialListener {
             IntentFilter filter = new IntentFilter();
             filter.addAction(Constants.INTENT_ACTION_GRANT_USB);
             cordova.getActivity().registerReceiver(this.broadcastReceiver, filter);
+
+        }
+
+
+
+        if (this.service == null) {
+            this.service = new SerialService();
+            this.service.attach(this);
+
+            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+            PluginResult result = new PluginResult(PluginResult.Status.OK);
+            result.setKeepCallback(true);
         }
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 //        this.callbackContext = callbackContext;
