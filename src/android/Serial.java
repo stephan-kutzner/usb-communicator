@@ -65,16 +65,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
 
     private String command = "";
+    private double lastReport = 0;
 
     private List<Byte> result;
 
-//    public Serial() {
-//    }
-
-
-
 
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+        this.lastReport = 0;
         this.result = new ArrayList<Byte>();
         this.callbackContext = callbackContext;
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
