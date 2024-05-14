@@ -77,24 +77,18 @@ public class Serial extends CordovaPlugin implements SerialListener {
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         this.result = new ArrayList<Byte>();
         this.callbackContext = callbackContext;
-
-
-        if (this.service == null) {
-            Log.d(TAG, "Action1");
-            this.service = new SerialService();
-            Log.d(TAG, "Action2");
-            this.service.attach(this);
-            Log.d(TAG, "Action3");
-
-            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-            PluginResult result = new PluginResult(PluginResult.Status.OK);
-            result.setKeepCallback(true);
-
-
+        if (ACTION_REQUEST_PERMISSION.equals(action)) {
+            if (this.broadcastReceiver != null) {
+                try {
+                    cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
+                } catch (Exception IllegalArgumentException) {
+                    //
+                }
+            }
+            this.broadcastReceiver = null;
             this.broadcastReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    Log.d(TAG, "" + intent);
                     if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
                         Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
                         Log.d(TAG, "Granted: " + granted);
