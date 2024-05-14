@@ -180,7 +180,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
             Object o_driver = opts.opt("driver");
             driver_type = o_driver instanceof String ? o_driver.toString() : driver_type;
         }
-        Log.d(TAG, driver_type);
+
+        int len = usbManager.getDeviceList().values().size();
+        if (len == 0) {
+            callbackContext.error("No device connected.");
+            return;
+        }
 
         for(UsbDevice v : usbManager.getDeviceList().values())
             if(v.getVendorId() == vid && v.getProductId() == pid)
