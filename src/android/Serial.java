@@ -459,6 +459,34 @@ public void onStart() {
                     }
                     break;
                 }
+                case "I": {
+                    if (result.length < 28) {
+                        break;
+                    }
+                    byte[] part1 = Arrays.copyOfRange(result, 2, 2+6);
+                    byte[] part2 = Arrays.copyOfRange(result, 2+6, 2+13);
+                    String s = new String(part1, StandardCharsets.UTF_8);
+                    StringBuilder res = new StringBuilder();
+                    for (byte a: part2) {
+                        res.append(String.format("%02X", a));
+                    }
+                    s = s + res.toString();
+                    if (s.contains("\u0000")) {
+                        this.callbackContext.error(s);
+                        break;
+                    }
+                    this.callbackContext.success(s);
+                    break;
+                }
+                case "requestPermission":
+                case "open":
+                case "close": {
+                    break;
+                }
+                default: {
+                    this.callbackContext.success("Execution done.");
+                    break;
+                }
             }
         } catch (Exception e) {
             Log.d(TAG, "ERROR");
