@@ -1,22 +1,14 @@
 package com.biozoom.serial;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.ArrayDeque;
-import java.util.Iterator;
-import java.util.Base64;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.lang.reflect.Array;
-
-
-
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbManager;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -25,25 +17,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.hardware.usb.UsbConstants;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbEndpoint;
-import android.hardware.usb.UsbInterface;
-import android.hardware.usb.UsbRequest;
-//import android.hardware.usb.UsbEndpoint;
-import android.hardware.usb.UsbManager;
-import android.os.AsyncTask;
-import android.os.IBinder;
-//import android.util.Base64;
-import android.util.Log;
-import java.util.HashMap;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Iterator;
+import java.util.List;
 
 
 public class Serial extends CordovaPlugin implements SerialListener {
@@ -52,13 +35,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private Connected connected = Connected.False;
     private UsbSerialPort usbSerialPort;
     private SerialService service;
-    private boolean controlLinesEnabled = false;
     private String TAG = "CommunicatorUSB";
     private static final String ACTION_REQUEST_PERMISSION = "requestPermission";
     private static final String ACTION_WRITE = "writeSerial";
     private static final String ACTION_OPEN = "openSerial";
     private static final String ACTION_CLOSE = "closeSerial";
-    private static final String USB_PERMISSION = "com.biozoom.serial.USB_PERMISSION";
 
     private CallbackContext callbackContext;
     private BroadcastReceiver broadcastReceiver;
