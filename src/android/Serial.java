@@ -186,6 +186,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             if(v.getVendorId() == vid && v.getProductId() == pid)
                 device = v;
         if(device == null) {
+            callbackContext.error("No device found.");
             return;
         }
         UsbSerialDriver driver;
@@ -204,6 +205,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
         }
         if(driver == null) {
+            callbackContext.error("No driver found.");
             return;
         }
         usbSerialPort = driver.getPorts().get(0);
@@ -217,7 +219,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             Log.d(TAG, "Permission requested.");
             return;
         } else {
-            callbackContext.success("DONE!!!");
+            callbackContext.success("Permission already granted.");
         }
 
     }
@@ -253,6 +255,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             if(v.getVendorId() == vid && v.getProductId() == pid)
                 device = v;
         if(device == null) {
+            callbackContext.error("No device found.");
             return;
         }
 
@@ -272,6 +275,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
         }
         if(driver == null) {
+            callbackContext.error("No driver found.");
             return;
         }
         usbSerialPort = driver.getPorts().get(0);
@@ -299,9 +303,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
             // for consistency to bluetooth/bluetooth-LE app use same SerialListener and SerialService classes
             onSerialConnect();
             Log.d(TAG, "Done");
+            callbackContext.success("Connection established.");
         } catch (Exception e) {
             onSerialConnectError(e);
             Log.d(TAG, "Could not open port.");
+            callbackContext.error("Could not establish connection.");
         }
     }
 
