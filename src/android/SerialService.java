@@ -103,12 +103,6 @@ public class SerialService extends Service implements SerialListener {
     }
 
     public void attach(SerialListener listener) {
-//        if(Looper.getMainLooper().getThread() != Thread.currentThread()) {
-//            Log.d(TAG, "Error1");
-//            throw new IllegalArgumentException("not in main thread");
-//        }
-//        initNotification();
-//        cancelNotification();
         // use synchronized() to prevent new items in queue2
         // new items will not be added to queue1 because mainLooper.post and attach() run in main thread
         synchronized (this) {
@@ -142,51 +136,6 @@ public class SerialService extends Service implements SerialListener {
         // detach() and mainLooper.post run in the main thread, so all items are caught
         listener = null;
     }
-
-//    private void initNotification() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_LOW);
-//            nc.setShowBadge(false);
-//            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//            nm.createNotificationChannel(nc);
-//        }
-//    }
-
-//    @RequiresApi(Build.VERSION_CODES.O)
-//    public boolean areNotificationsEnabled() {
-//        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//        NotificationChannel nc = nm.getNotificationChannel(Constants.NOTIFICATION_CHANNEL);
-//        return nm.areNotificationsEnabled() && nc != null && nc.getImportance() > NotificationManager.IMPORTANCE_NONE;
-//    }
-
-//    private void createNotification() {
-//        Intent disconnectIntent = new Intent()
-//                .setPackage(getPackageName())
-//                .setAction(Constants.INTENT_ACTION_DISCONNECT);
-//        Intent restartIntent = new Intent()
-//                .setClassName(this, Constants.INTENT_CLASS_MAIN_ACTIVITY)
-//                .setAction(Intent.ACTION_MAIN)
-//                .addCategory(Intent.CATEGORY_LAUNCHER);
-//        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
-//        PendingIntent disconnectPendingIntent = PendingIntent.getBroadcast(this, 1, disconnectIntent, flags);
-//        PendingIntent restartPendingIntent = PendingIntent.getActivity(this, 1, restartIntent,  flags);
-//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL)
-//                .setSmallIcon(R.drawable.ic_notification)
-//                .setColor(getResources().getColor(R.color.colorPrimary))
-//                .setContentTitle(getResources().getString(R.string.app_name))
-//                .setContentText(socket != null ? "Connected to "+socket.getName() : "Background Service")
-//                .setContentIntent(restartPendingIntent)
-//                .setOngoing(true)
-//                .addAction(new NotificationCompat.Action(R.drawable.ic_clear_white_24dp, "Disconnect", disconnectPendingIntent));
-//        // @drawable/ic_notification created with Android Studio -> New -> Image Asset using @color/colorPrimaryDark as background color
-//        // Android < API 21 does not support vectorDrawables in notifications, so both drawables used here, are created as .png instead of .xml
-//        Notification notification = builder.build();
-//        startForeground(Constants.NOTIFY_MANAGER_START_FOREGROUND_SERVICE, notification);
-//    }
-
-//    private void cancelNotification() {
-//        stopForeground(true);
-//    }
 
     /**
      * SerialListener
@@ -240,6 +189,8 @@ public class SerialService extends Service implements SerialListener {
      * While not consumed (2), add more data (3).
      */
     public void onSerialRead(byte[] data) {
+//        String TAG = "CommunicatorUSB";
+//        Log.d(TAG, "" + data);
         if(connected) {
             synchronized (this) {
                 if (listener != null) {

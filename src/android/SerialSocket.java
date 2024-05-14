@@ -46,7 +46,6 @@ public class SerialSocket implements SerialInputOutputManager.Listener {
 
     void connect(SerialListener listener) throws IOException {
         this.listener = listener;
-        ContextCompat.registerReceiver(context, disconnectBroadcastReceiver, new IntentFilter(Constants.INTENT_ACTION_DISCONNECT), ContextCompat.RECEIVER_NOT_EXPORTED);
 	try {
 	    serialPort.setDTR(true); // for arduino, ...
 	    serialPort.setRTS(true);
@@ -94,6 +93,7 @@ public class SerialSocket implements SerialInputOutputManager.Listener {
 
     @Override
     public void onNewData(byte[] data) {
+        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
         if(listener != null)
             listener.onSerialRead(data);
     }

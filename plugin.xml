@@ -27,7 +27,6 @@
         <source-file src="src/android/SerialInputOutputManager.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/android/UsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/android/utils/Constants.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/utils/HexDump.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/android/utils/MonotonicClock.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/android/utils/UsbId.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/android/utils/UsbUtils.java" target-dir="src/com/biozoom/serial/" />

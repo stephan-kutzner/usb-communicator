@@ -221,8 +221,6 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
         private int getInterfaceIdFromDescriptors() {
             ArrayList<byte[]> descriptors = UsbUtils.getDescriptors(mConnection);
             Log.d(TAG, "USB descriptor:");
-            for(byte[] descriptor : descriptors)
-                Log.d(TAG, HexDump.toHexString(descriptor));
 
             if (descriptors.size() > 0 &&
                     descriptors.get(0).length == 18 &&
