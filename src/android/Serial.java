@@ -118,7 +118,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 //        this.callbackContext = callbackContext;
-        Log.d(TAG, "Action: " + this.broadcastReceiver);
         Log.d(TAG, "Action: " + action);
         Log.d(TAG, "Args: " + args);
         JSONObject arg_object = args.optJSONObject(0);
@@ -290,8 +289,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
 //                status("Setting serial parameters failed: " + e.getMessage());
             }
             SerialSocket socket = new SerialSocket(cordova.getActivity().getApplicationContext(), usbConnection, usbSerialPort);
-            Log.d(TAG, "" + service);
-            Log.d(TAG, "" + socket);
             Log.d(TAG, "Connecting...");
             service.connect(socket);
             Log.d(TAG, "Connected!");
@@ -338,39 +335,29 @@ public class Serial extends CordovaPlugin implements SerialListener {
 //        service = ((SerialService.SerialBinder) binder).getService();
 //        service.attach(this);
 //    }
-@Override
-public void onStart() {
-    Log.d(TAG, "Registering receiver...");
-    super.onStart();
-    Log.d(TAG, "Registering receiver...");
-    this.broadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d(TAG, "" + intent);
-            if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
-                Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-                Log.d(TAG, "Granted: " + granted);
-            }
-        }
-    };
-    Log.d(TAG, "Registering receiver...");
-
-
-    if (this.service == null) {
-        Log.d(TAG, "Action1");
-        this.service = new SerialService();
-        Log.d(TAG, "Action2");
-        this.service.attach(this);
-        Log.d(TAG, "Action3");
-    }
-    Log.d(TAG, "Registering receiver...");
-    IntentFilter filter = new IntentFilter();
-    Log.d(TAG, "Registering receiver...");
-    filter.addAction(Context.USB_SERVICE);
-    Log.d(TAG, "Registering receiver...");
-    cordova.getActivity().registerReceiver(this.broadcastReceiver, filter);
-    Log.d(TAG, "Receiver registered.");
-}
+//@Override
+//public void onStart() {
+//    super.onStart();
+//    this.broadcastReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
+//                Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+//                Log.d(TAG, "Granted: " + granted);
+//            }
+//        }
+//    };
+//    Log.d(TAG, "Registering receiver...");
+//
+//
+//    if (this.service == null) {
+//        this.service = new SerialService();
+//        this.service.attach(this);
+//    }
+//    IntentFilter filter = new IntentFilter();
+//    filter.addAction(Context.USB_SERVICE);
+//    cordova.getActivity().registerReceiver(this.broadcastReceiver, filter);
+//}
 
     @Override
     public void onStop() {
