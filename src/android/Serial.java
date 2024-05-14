@@ -312,8 +312,14 @@ public class Serial extends CordovaPlugin implements SerialListener {
             service.disconnect();
             service = null;
             usbSerialPort = null;
-            cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
-            this.broadcastReceiver = null;
+            if (this.broadcastReceiver != null) {
+                try {
+                    cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
+                } catch (Exception IllegalArgumentException) {
+                    //
+                }
+                this.broadcastReceiver = null;
+            }
 
             if (this.callbackContext != null) {
                 callbackContext.success("Disconnected.");
@@ -368,7 +374,13 @@ public void onStart() {
 
     @Override
     public void onStop() {
-        cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
+        if (this.broadcastReceiver != null) {
+            try {
+                cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
+            } catch (Exception IllegalArgumentException) {
+                //
+            }
+        }
         if(service != null && !cordova.getActivity().isChangingConfigurations())
             service.detach();
         super.onStop();
