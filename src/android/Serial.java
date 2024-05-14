@@ -398,38 +398,20 @@ public void onStart() {
     public void onSerialRead(byte[] data) {
         ArrayDeque<byte[]> datas = new ArrayDeque<>();
         datas.add(data);
-        Log.d(TAG, "123");
-//        receive(datas);
     }
 
     public void onSerialRead(ArrayDeque<byte[]> datas) {
-//        Object[] data = datas.toArray();
-//        byte[][] result = new byte[datas.size()][];
-//        List<Byte> merged = new ArrayList<Byte>(Arrays.asList(this.result));
-//        Log.d(TAG, "" + result);
         Iterator<byte[]> desIterate = datas.iterator();
         while(desIterate.hasNext()) {
             byte[] el = desIterate.next();
-            for (byte e: el) {
+            for (byte e : el) {
                 this.result.add(e);
             }
-//            merged = Bytes.concat(merged, el);
-//            result[i] = el;
-//            Log.d(TAG, "" + el);
-//            i += 1;
-//            System.out.print(desIterate.next());
-//            System.out.print(", ");
         }
-//        for(int i = 0; i < datas.size(); i++) {
-//            Log.d(TAG, "" + datas[i]);
-////            result[i] = Array.getByte(data, i);
-////            Log.d(TAG, "" + result[i]);
-//        }
         byte[] result = new byte[this.result.size()];
         for (int i = 0; i < this.result.size(); i++) {
             result[i] = this.result.get(i);
         }
-//        this.result = result;
         try {
             switch (this.command) {
                 case "W": {
