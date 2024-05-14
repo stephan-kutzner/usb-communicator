@@ -443,9 +443,17 @@ public void onStart() {
                 }
                 case "M": {
                     byte[] encoded = Base64.getEncoder().encode(result);
-                    //                    println(new String(encoded));   // Outputs "SGVsbG8="
                     String s = new String(encoded);
-                    Log.e(TAG, "" + s.length());
+
+                    float progress = (((float)s.length()) / 254012) * 100;
+                    double progressInt = Math.floor(progress);
+                    if (progressInt > this.lastReport) {
+                        this.lastReport = progressInt;
+                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
+                        pluginResult.setKeepCallback(true); // keep callback
+                        callbackContext.sendPluginResult(pluginResult);
+                    }
+
                     if (s.length() >= 254012) {
                         this.callbackContext.success(s);
                     }
