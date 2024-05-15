@@ -20,19 +20,19 @@
                 <param name="android-package" value="com.biozoom.serial.Serial"/>
             </feature>
         </config-file>
-        <source-file src="src/android/Serial.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/SerialService.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/SerialListener.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/SerialSocket.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/SerialInputOutputManager.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/UsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/utils/Constants.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/utils/MonotonicClock.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/utils/UsbId.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/utils/UsbUtils.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/driver/CommonUsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/driver/CdcAcmSerialDriver.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/driver/Cp21xxSerialDriver.java" target-dir="src/com/biozoom/serial/" />
-        <source-file src="src/android/driver/UsbSerialDriver.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/Serial.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/SerialService.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/SerialListener.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/SerialSocket.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/SerialInputOutputManager.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/UsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/utils/Constants.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/utils/MonotonicClock.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/utils/UsbId.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/utils/UsbUtils.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/driver/CommonUsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/driver/CdcAcmSerialDriver.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/driver/Cp21xxSerialDriver.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/driver/UsbSerialDriver.java" target-dir="src/com/biozoom/serial/" />
     </platform>
 </plugin>

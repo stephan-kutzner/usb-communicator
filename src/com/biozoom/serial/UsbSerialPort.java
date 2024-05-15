@@ -13,6 +13,8 @@ import android.hardware.usb.UsbManager;
 
 import androidx.annotation.IntDef;
 
+//import com.biozoom.serial.UsbSerialDriver;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.annotation.Retention;

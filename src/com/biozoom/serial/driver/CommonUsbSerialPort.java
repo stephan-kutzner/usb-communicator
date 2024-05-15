@@ -13,6 +13,8 @@ import android.hardware.usb.UsbRequest;
 import android.os.Build;
 import android.util.Log;
 
+import com.biozoom.serial.UsbSerialPort;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;

@@ -12,6 +12,8 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.util.Log;
 
+import com.biozoom.serial.UsbSerialPort;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;

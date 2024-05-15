@@ -8,6 +8,8 @@ package com.biozoom.serial;
 
 import android.hardware.usb.UsbDevice;
 
+import com.biozoom.serial.UsbSerialPort;
+
 import java.util.List;
 
 public interface UsbSerialDriver {
