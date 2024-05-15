@@ -45,6 +45,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
 
     private String command = "";
+    private boolean resultSend = false;
     private double lastReport = 0;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
@@ -67,6 +68,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         this.lastReport = 0;
         this.result = new ArrayList<Byte>();
+        this.resultSend = false;
         this.callbackContext = callbackContext;
 
         /**
@@ -349,7 +351,18 @@ public class Serial extends CordovaPlugin implements SerialListener {
         datas.add(data);
     }
 
+    /**
+     * Called when incoming data is available
+     * Handle data depending on which method was last called
+     * @param datas byte-array of raw data
+     */
     public void onSerialRead(ArrayDeque<byte[]> datas) {
+        /**
+         * add each received byte to the persistent result-list,
+         * then handle the full result if possible
+         */
+
+        lastRead = new Date().getTime();
         Iterator<byte[]> desIterate = datas.iterator();
         while(desIterate.hasNext()) {
             byte[] el = desIterate.next();
@@ -357,9 +370,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 this.result.add(e);
             }
         }
+        // transform the persistent result-list into an array
         byte[] result = new byte[this.result.size()];
         for (int i = 0; i < this.result.size(); i++) {
             result[i] = this.result.get(i);
+        }
+        if (this.resultSend) {
+            return;
         }
         try {
             switch (this.command) {
@@ -369,12 +386,15 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     float[] values = {fLow, fHigh};
                     String s = Arrays.toString(values);
                     this.callbackContext.success(s);
+                    this.resultSend = true;
                     break;
                 }
                 case "M": {
+                    // aox measurement
                     byte[] encoded = Base64.getEncoder().encode(result);
                     String s = new String(encoded);
 
+                    // report the current progress back as a non-finishing-success
                     float progress = (((float)s.length()) / 254012) * 100;
                     double progressInt = Math.floor(progress);
                     if (progressInt > this.lastReport) {
@@ -385,18 +405,22 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     }
 
                     if (s.length() >= 254012) {
+                        this.resultSend = true;
                         this.callbackContext.success(s);
                     }
                     break;
                 }
                 case "get_status\n": {
+                    // get a status-json
                     String s = new String(result, StandardCharsets.UTF_8);
                     if (s.contains("\n")) {
+                        this.resultSend = true;
                         this.callbackContext.success(s);
                     }
                     break;
                 }
                 case "I": {
+                    // get the serial number of the scanner
                     if (result.length < 28) {
                         break;
                     }
@@ -408,6 +432,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         res.append(String.format("%02X", a));
                     }
                     s = s + res.toString();
+
+                    this.resultSend = true;
                     if (s.contains("\u0000")) {
                         this.callbackContext.error(s);
                         break;
@@ -418,9 +444,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 case "requestPermission":
                 case "open":
                 case "close": {
+                    // ignore the result
                     break;
                 }
                 default: {
+                    this.resultSend = true;
                     this.callbackContext.success("Execution done.");
                     break;
                 }
