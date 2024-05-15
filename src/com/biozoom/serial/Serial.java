@@ -25,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private String command = "";
     private boolean resultSend = false;
     private double lastReport = 0;
+    private double lastRead = 0;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
             {"0416", "b002", "CdcAcmSerialDriver"},
@@ -70,6 +72,30 @@ public class Serial extends CordovaPlugin implements SerialListener {
         this.result = new ArrayList<Byte>();
         this.resultSend = false;
         this.callbackContext = callbackContext;
+
+
+        double startDate = new Date().getTime();
+        while(true) {
+            double now = new Date().getTime();
+
+            if (now > startDate + 10000) {
+                this.callbackContext.error("Device busy.");
+                throw new RuntimeException();
+            }
+
+            if (now > (this.lastRead + 50)) {
+                break;
+            }
+            Log.d(TAG, "Sleeping...");
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        double now = new Date().getTime();
+        this.lastRead = now;
 
         /**
          * in case permissions for a device are requested, create a new listener
