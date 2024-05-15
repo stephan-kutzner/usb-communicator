@@ -410,7 +410,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     float fHigh = ByteBuffer.wrap(Arrays.copyOfRange(result, 10, 14)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     float[] values = {fLow, fHigh};
                     String s = Arrays.toString(values);
-                    Log.d(TAG, "" + s);
                     this.callbackContext.success(s);
                     break;
                 }
@@ -434,7 +433,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 }
                 case "get_status\n": {
                     String s = new String(result, StandardCharsets.UTF_8);
-                    Log.d(TAG, "" + s);
                     if (s.contains("\n")) {
                         this.callbackContext.success(s);
                     }
