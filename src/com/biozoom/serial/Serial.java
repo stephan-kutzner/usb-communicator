@@ -125,14 +125,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
         // request permission
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
             this.command = "requestPermission";
-//            JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
-            requestPermission(callbackContext);
+            requestPermission();
             return true;
         }
         else if (ACTION_OPEN.equals(action)) {
             this.command = "open";
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
-            open(opts, callbackContext);
+            open(opts);
             return true;
         }
         else if (ACTION_CLOSE.equals(action)) {
@@ -211,10 +210,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
      * @param opts additional parameters
      * @param callbackContext callback context, used for .success and .error
      */
-    private void requestPermission(final CallbackContext callbackContext) {
-        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-        PluginResult result = new PluginResult(PluginResult.Status.OK);
-        result.setKeepCallback(true);
+    private void requestPermission() {
+//        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+//        PluginResult result = new PluginResult(PluginResult.Status.OK);
+//        result.setKeepCallback(true);
 
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
@@ -249,9 +248,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     }
 
-    private void open(final JSONObject opts, final CallbackContext callbackContext) {
-
-        UsbDevice device = null;
+    private void open(final JSONObject opts) {
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
         int baudrate;
@@ -282,7 +279,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
             try {
                 usbSerialPort.setParameters(baudrate, 8, 1, 0);
             } catch (UnsupportedOperationException e) {
-//                status("Setting serial parameters failed: " + e.getMessage());
             }
             SerialSocket socket = new SerialSocket(cordova.getActivity().getApplicationContext(), usbConnection, usbSerialPort);
             Log.d(TAG, "Connecting...");
