@@ -410,6 +410,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
         try {
             switch (this.command) {
                 case "W": {
+                    // hand-recognition
+                    if (result.length < 14) {
+                        break;
+                    }
                     float fLow = ByteBuffer.wrap(Arrays.copyOfRange(result, 2, 6)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     float fHigh = ByteBuffer.wrap(Arrays.copyOfRange(result, 10, 14)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     float[] values = {fLow, fHigh};
