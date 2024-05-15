@@ -114,11 +114,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
             this.service.attach(this);
 
             // Test: is this required?
-            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-            PluginResult result = new PluginResult(PluginResult.Status.OK);
-            result.setKeepCallback(true);
+//            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+//            PluginResult result = new PluginResult(PluginResult.Status.OK);
+//            result.setKeepCallback(true);
         }
-        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+        // Maybe reenable?
+//        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
         Log.d(TAG, "Action: " + action);
         Log.d(TAG, "Args: " + args);
         JSONObject arg_object = args.optJSONObject(0);
@@ -322,37 +323,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
     }
 
-
-
-//    @Override
-//    public void onServiceConnected(ComponentName name, IBinder binder) {
-//        service = ((SerialService.SerialBinder) binder).getService();
-//        service.attach(this);
-//    }
-//@Override
-//public void onStart() {
-//    super.onStart();
-//    this.broadcastReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
-//                Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-//                Log.d(TAG, "Granted: " + granted);
-//            }
-//        }
-//    };
-//    Log.d(TAG, "Registering receiver...");
-//
-//
-//    if (this.service == null) {
-//        this.service = new SerialService();
-//        this.service.attach(this);
-//    }
-//    IntentFilter filter = new IntentFilter();
-//    filter.addAction(Context.USB_SERVICE);
-//    cordova.getActivity().registerReceiver(this.broadcastReceiver, filter);
-//}
-
     @Override
     public void onStop() {
         if (this.broadcastReceiver != null) {
@@ -366,16 +336,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
             service.detach();
         super.onStop();
     }
-
-//    @Override
-//    public void onStart() {
-//        Log.d(TAG, "ABCDASD");
-//        super.onStart();
-//        if (service != null)
-//            service.attach(this);
-//        else
-//            cordova.getActivity().startService(new Intent(cordova.getActivity(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
-//    }
 
     @Override
     public void onSerialConnect() {
