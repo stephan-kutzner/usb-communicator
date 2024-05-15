@@ -269,13 +269,17 @@ public class Serial extends CordovaPlugin implements SerialListener {
             PendingIntent usbPermissionIntent = PendingIntent.getBroadcast(cordova.getActivity(), 0, intent, flags);
             usbManager.requestPermission(driver.getDevice(), usbPermissionIntent);
             Log.d(TAG, "Permission requested.");
-            return;
         } else {
             this.callbackContext.success("Permission already granted.");
         }
 
     }
 
+    /**
+     * attempt to open a connection to the attached device
+     * use the baudrate provided via the opts argument
+     * @param opts object containing the parameter 'baudRate'
+     */
     private void open(final JSONObject opts) {
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
@@ -313,7 +317,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
             Log.d(TAG, "Connected!");
             // usb connect is not asynchronous. connect-success and connect-error are returned immediately from socket.connect
             // for consistency to bluetooth/bluetooth-LE app use same SerialListener and SerialService classes
-            onSerialConnect();
             Log.d(TAG, "Done");
             this.callbackContext.success("Connection established.");
         } catch (Exception e) {
