@@ -47,14 +47,35 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     private String command = "";
     private double lastReport = 0;
+    private static final String[][] deviceTypes = {
+            {"04b4", "0003", "CdcAcmSerialDriver"},
+            {"0416", "b002", "CdcAcmSerialDriver"},
+            {"10c4", "ea60", "Cp21xxSerialDriver"},
+    };
 
     private List<Byte> result;
 
 
+    /**
+     * entrypoint of all external requests
+     * @param action String representing the desired action
+     * @param args Object containing all additional parameters
+     * @param callbackContext callback context object, can be used to call .success and .error
+     *                        with a result-message
+     * @return
+     * @throws JSONException
+     */
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         this.lastReport = 0;
         this.result = new ArrayList<Byte>();
         this.callbackContext = callbackContext;
+
+        /**
+         * in case permissions for a device are requested, create a new listener
+         * that reacts to permission granted/denied
+         * do this only for permission requests, as any other request will never cause this trigger,
+         * and re-creating the listener for this would be unnecessary overhead
+         */
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
             if (this.broadcastReceiver != null) {
                 try {
@@ -85,25 +106,27 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
 
 
-
+        /**
+         * if no service exists, create one and attach this class as the listener
+         */
         if (this.service == null) {
             this.service = new SerialService();
             this.service.attach(this);
 
+            // Test: is this required?
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
             PluginResult result = new PluginResult(PluginResult.Status.OK);
             result.setKeepCallback(true);
         }
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-//        this.callbackContext = callbackContext;
         Log.d(TAG, "Action: " + action);
         Log.d(TAG, "Args: " + args);
         JSONObject arg_object = args.optJSONObject(0);
         // request permission
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
             this.command = "requestPermission";
-            JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
-            requestPermission(opts, callbackContext);
+//            JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
+            requestPermission(callbackContext);
             return true;
         }
         else if (ACTION_OPEN.equals(action)) {
@@ -132,7 +155,14 @@ public class Serial extends CordovaPlugin implements SerialListener {
         return false;
     }
 
-    private void requestPermission(final JSONObject opts, final CallbackContext callbackContext) {
+    /**
+     * check whether a usb-device is connected that satisfies the given criteria (vendor ID, product ID)
+     * if so, request permission if it wasn't granted before, or return with success in case
+     * permission was already granted
+     * @param opts additional parameters
+     * @param callbackContext callback context, used for .success and .error
+     */
+    private void requestPermission(final CallbackContext callbackContext) {
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         result.setKeepCallback(true);
@@ -140,36 +170,61 @@ public class Serial extends CordovaPlugin implements SerialListener {
         UsbDevice device = null;
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
-        int vid;
-        int pid;
-        String driver_type = "CdcAcmSerialDriver";
-        if (opts.has("vid") && opts.has("pid")) {
-            Object o_vid = opts.opt("vid"); //can be an integer Number or a hex String
-            Object o_pid = opts.opt("pid"); //can be an integer Number or a hex String
-            vid = o_vid instanceof Number ? ((Number) o_vid).intValue() : Integer.parseInt((String) o_vid, 16);
-            pid = o_pid instanceof Number ? ((Number) o_pid).intValue() : Integer.parseInt((String) o_pid, 16);
-            //            String driver = opts.has("driver") ? (String) opts.opt("driver") : "CdcAcmSerialDriver";
-        } else {
-            vid = 0;
-            pid = 0;
-        }
+//        int vid;
+//        int pid;
+//        String driver_type = "CdcAcmSerialDriver";
+//        if (opts.has("vid") && opts.has("pid")) {
+//            Object o_vid = opts.opt("vid"); //can be an integer Number or a hex String
+//            Object o_pid = opts.opt("pid"); //can be an integer Number or a hex String
+//            vid = o_vid instanceof Number ? ((Number) o_vid).intValue() : Integer.parseInt((String) o_vid, 16);
+//            pid = o_pid instanceof Number ? ((Number) o_pid).intValue() : Integer.parseInt((String) o_pid, 16);
+//            //            String driver = opts.has("driver") ? (String) opts.opt("driver") : "CdcAcmSerialDriver";
+//        } else {
+//            vid = 0;
+//            pid = 0;
+//        }
+//
+//        if (opts.has("driver")){
+//            Object o_driver = opts.opt("driver");
+//            driver_type = o_driver instanceof String ? o_driver.toString() : driver_type;
+//        }
 
-        if (opts.has("driver")){
-            Object o_driver = opts.opt("driver");
-            driver_type = o_driver instanceof String ? o_driver.toString() : driver_type;
-        }
-
+        /**
+         * if no device is connected at all, return an error message here already
+         */
         int len = usbManager.getDeviceList().values().size();
         if (len == 0) {
-            callbackContext.error("No device connected.");
+            this.callbackContext.error("No device connected.");
             return;
         }
 
-        for(UsbDevice v : usbManager.getDeviceList().values())
-            if(v.getVendorId() == vid && v.getProductId() == pid)
-                device = v;
+        String driver_type = "";
+        for(UsbDevice v : usbManager.getDeviceList().values()) {
+            for(String[] w: deviceTypes) {
+                int vid = Integer.parseInt((String) w[0], 16);
+                int pid = Integer.parseInt((String) w[1], 16);
+                if(
+                        v.getVendorId() == vid
+                        && v.getProductId() == pid
+                ) {
+                    device = v;
+                    driver_type = w[2];
+                    break;
+                }
+            }
+            if (driver_type != "") {
+                break;
+            }
+        }
+
+
+
+
+//        for(UsbDevice v : usbManager.getDeviceList().values())
+//            if(v.getVendorId() == vid && v.getProductId() == pid)
+//                device = v;
         if(device == null) {
-            callbackContext.error("No device found.");
+            this.callbackContext.error("No device found.");
             return;
         }
         UsbSerialDriver driver;
@@ -188,7 +243,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
         }
         if(driver == null) {
-            callbackContext.error("No driver found.");
+            this.callbackContext.error("No driver found.");
             return;
         }
         usbSerialPort = driver.getPorts().get(0);
@@ -202,7 +257,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             Log.d(TAG, "Permission requested.");
             return;
         } else {
-            callbackContext.success("Permission already granted.");
+            this.callbackContext.success("Permission already granted.");
         }
 
     }
@@ -212,33 +267,58 @@ public class Serial extends CordovaPlugin implements SerialListener {
         UsbDevice device = null;
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
-        int vid;
-        int pid;
+//        int vid;
+//        int pid;
         int baudrate;
-        String driver_type = "CdcAcmSerialDriver";
-        if (opts.has("vid") && opts.has("pid")) {
-            Object o_vid = opts.opt("vid"); //can be an integer Number or a hex String
-            Object o_pid = opts.opt("pid"); //can be an integer Number or a hex String
+        if (opts.has("baudRate")) {
             Object o_baudrate = opts.opt("baudRate"); //can be an integer Number or a hex String
-            vid = o_vid instanceof Number ? ((Number) o_vid).intValue() : Integer.parseInt((String) o_vid, 16);
-            pid = o_pid instanceof Number ? ((Number) o_pid).intValue() : Integer.parseInt((String) o_pid, 16);
             baudrate = o_baudrate instanceof Number ? ((Number) o_baudrate).intValue() : Integer.parseInt((String) o_baudrate, 16);
         } else {
-            vid = 0;
-            pid = 0;
             baudrate = 2000000;
         }
+//        String driver_type = "CdcAcmSerialDriver";
+//        if (opts.has("vid") && opts.has("pid")) {
+//            Object o_vid = opts.opt("vid"); //can be an integer Number or a hex String
+//            Object o_pid = opts.opt("pid"); //can be an integer Number or a hex String
+//            Object o_baudrate = opts.opt("baudRate"); //can be an integer Number or a hex String
+//            vid = o_vid instanceof Number ? ((Number) o_vid).intValue() : Integer.parseInt((String) o_vid, 16);
+//            pid = o_pid instanceof Number ? ((Number) o_pid).intValue() : Integer.parseInt((String) o_pid, 16);
+//            baudrate = o_baudrate instanceof Number ? ((Number) o_baudrate).intValue() : Integer.parseInt((String) o_baudrate, 16);
+//        } else {
+//            vid = 0;
+//            pid = 0;
+//            baudrate = 2000000;
+//        }
 
-        if (opts.has("driver")){
-            Object o_driver = opts.opt("driver");
-            driver_type = o_driver instanceof String ? o_driver.toString() : driver_type;
+//        if (opts.has("driver")){
+//            Object o_driver = opts.opt("driver");
+//            driver_type = o_driver instanceof String ? o_driver.toString() : driver_type;
+//        }
+
+        String driver_type = "";
+        for(UsbDevice v : usbManager.getDeviceList().values()) {
+            for(String[] w: deviceTypes) {
+                int vid = Integer.parseInt((String) w[0], 16);
+                int pid = Integer.parseInt((String) w[1], 16);
+                if(
+                        v.getVendorId() == vid
+                                && v.getProductId() == pid
+                ) {
+                    device = v;
+                    driver_type = w[2];
+                    break;
+                }
+            }
+            if (driver_type != "") {
+                break;
+            }
         }
 
-        for(UsbDevice v : usbManager.getDeviceList().values())
-            if(v.getVendorId() == vid && v.getProductId() == pid)
-                device = v;
+//        for(UsbDevice v : usbManager.getDeviceList().values())
+//            if(v.getVendorId() == vid && v.getProductId() == pid)
+//                device = v;
         if(device == null) {
-            callbackContext.error("No device found.");
+            this.callbackContext.error("No device found.");
             return;
         }
 
@@ -258,14 +338,14 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
         }
         if(driver == null) {
-            callbackContext.error("No driver found.");
+            this.callbackContext.error("No driver found.");
             return;
         }
         usbSerialPort = driver.getPorts().get(0);
         UsbDeviceConnection usbConnection = usbManager.openDevice(driver.getDevice());
 
         if (!usbManager.hasPermission(driver.getDevice())) {
-            callbackContext.error("Permission not granted.");
+            this.callbackContext.error("Permission not granted.");
             return;
         }
 
@@ -286,11 +366,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
             // for consistency to bluetooth/bluetooth-LE app use same SerialListener and SerialService classes
             onSerialConnect();
             Log.d(TAG, "Done");
-            callbackContext.success("Connection established.");
+            this.callbackContext.success("Connection established.");
         } catch (Exception e) {
             onSerialConnectError(e);
             Log.d(TAG, "Could not open port.");
-            callbackContext.error("Could not establish connection.");
+            this.callbackContext.error("Could not establish connection.");
         }
     }
 
@@ -311,11 +391,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
 
             if (this.callbackContext != null) {
-                callbackContext.success("Disconnected.");
+                this.callbackContext.success("Disconnected.");
             }
         } catch (Exception e) {
             if (this.callbackContext != null) {
-                callbackContext.error("Could not disconnect scanner.");
+                this.callbackContext.error("Could not disconnect scanner.");
             }
         }
     }
@@ -423,7 +503,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         this.lastReport = progressInt;
                         PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
                         pluginResult.setKeepCallback(true); // keep callback
-                        callbackContext.sendPluginResult(pluginResult);
+                        this.callbackContext.sendPluginResult(pluginResult);
                     }
 
                     if (s.length() >= 254012) {
