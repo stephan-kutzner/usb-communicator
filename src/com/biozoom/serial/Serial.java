@@ -32,7 +32,6 @@ import java.util.List;
 public class Serial extends CordovaPlugin implements SerialListener {
 
     private enum Connected { False, Pending, True }
-    private Connected connected = Connected.False;
     private UsbSerialPort usbSerialPort;
     private SerialService service;
     private String TAG = "CommunicatorUSB";
@@ -273,7 +272,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
             return;
         }
 
-        connected = Connected.Pending;
         try {
             Log.d(TAG, "Attempting to open port.");
             usbSerialPort.open(usbConnection);
@@ -300,7 +298,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     private void disconnect() {
         try {
-            connected = Connected.False;
             service.disconnect();
             service = null;
             usbSerialPort = null;
@@ -339,7 +336,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     @Override
     public void onSerialConnect() {
-        connected = Connected.True;
     }
 
     @Override
