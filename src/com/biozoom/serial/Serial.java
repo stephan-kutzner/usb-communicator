@@ -68,10 +68,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
      * @throws JSONException
      */
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        this.lastReport = 0;
-        this.result = new ArrayList<Byte>();
-        this.resultSend = false;
-        this.callbackContext = callbackContext;
 
 
         double startDate = new Date().getTime();
@@ -96,6 +92,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
         double now = new Date().getTime();
         this.lastRead = now;
+        this.lastReport = 0;
+        this.result = new ArrayList<Byte>();
+        this.resultSend = false;
+        this.callbackContext = callbackContext;
 
         /**
          * in case permissions for a device are requested, create a new listener
