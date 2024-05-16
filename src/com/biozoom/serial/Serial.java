@@ -424,7 +424,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 }
                 case "M": {
                     // aox measurement
-                    byte[] encoded = Base64.encode(result, Base64.DEFAULT);
+                    byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
                     String s = new String(encoded);
 
                     // report the current progress back as a non-finishing-success
@@ -439,8 +439,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
                     if (s.length() >= 254012) {
                         this.resultSend = true;
-                        String returnVal = s.substring(0, 254012);
-                        this.callbackContext.success(returnVal);
+//                        String returnVal = s.substring(0, 254012);
+                        this.callbackContext.success(s);
                     }
                     break;
                 }
