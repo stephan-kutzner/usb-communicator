@@ -9,6 +9,7 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
+import android.util.Base64;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -24,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -424,7 +424,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 }
                 case "M": {
                     // aox measurement
-                    byte[] encoded = Base64.getEncoder().encode(result);
+                    byte[] encoded = Base64.encode(result, Base64.DEFAULT);
                     String s = new String(encoded);
 
                     // report the current progress back as a non-finishing-success
