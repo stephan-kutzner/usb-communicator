@@ -439,7 +439,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
                     if (s.length() >= 254012) {
                         this.resultSend = true;
-                        this.callbackContext.success(s);
+                        String returnVal = s.substring(0, 254012);
+                        this.callbackContext.success(returnVal);
                     }
                     break;
                 }
