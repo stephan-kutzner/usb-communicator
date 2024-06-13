@@ -49,6 +49,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private boolean resultSend = false;
     private double lastReport = 0;
     private double lastRead = 0;
+    private double version = 1;
     private boolean isMatrix = false;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
@@ -171,7 +172,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
         else if (ACTION_WRITE.equals(action)) {
             String data = arg_object.getString("command");
             this.command = data;
-            byte[] command = data.getBytes(StandardCharsets.UTF_8);
+            byte[] command = convert_command(data).getBytes(StandardCharsets.UTF_8);
             try {
                 service.write(command);
             } catch (IOException e) {
@@ -435,7 +436,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     }
 
                     // report the current progress back as a non-finishing-success
-                    float progress = (((float)s.length()) / 254012) * 100;
+                    float progress = (((float)s.length()) / targetLength) * 100;
                     double progressInt = Math.floor(progress);
                     if (progressInt > this.lastReport) {
                         this.lastReport = progressInt;
@@ -443,10 +444,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         pluginResult.setKeepCallback(true); // keep callback
                         this.callbackContext.sendPluginResult(pluginResult);
                     }
-
-                    if (s.length() >= 254012) {
+                    if (s.length() >= targetLength) {
                         this.resultSend = true;
-//                        String returnVal = s.substring(0, 254012);
                         this.callbackContext.success(s);
                     }
                     break;
@@ -472,6 +471,18 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     for (byte a: part2) {
                         res.append(String.format("%02X", a));
                     }
+
+                    byte partVersion = result[22];
+                    String versionString = String.format("%02X", partVersion);
+                    Log.d(TAG, "VersionStr: " + versionString);
+                    if (versionString.equals("01")) {
+                        this.version = 2;
+                        Log.d(TAG, "Version set to 2");
+                    } else {
+                        this.version = 1;
+                        Log.d(TAG, "Version set to 1");
+                    }
+
                     s = s + res.toString();
                     if (s.startsWith("4W")) {
                         isMatrix = true;
@@ -507,5 +518,20 @@ public class Serial extends CordovaPlugin implements SerialListener {
     @Override
     public void onSerialIoError(Exception e) {
         disconnect();
+    }
+
+    private String convert_command(String cmd) {
+        if (this.version == 2) {
+            switch (cmd) {
+                case "get_status\n": {
+                    return "S";
+                }
+                default: {
+                    return cmd;
+                }
+            }
+        }
+
+        return cmd;
     }
 }
