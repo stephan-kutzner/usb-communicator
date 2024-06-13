@@ -49,6 +49,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private boolean resultSend = false;
     private double lastReport = 0;
     private double lastRead = 0;
+    private boolean isMatrix = false;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
             {"0416", "b002", "CdcAcmSerialDriver"},
@@ -427,6 +428,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
                     String s = new String(encoded);
 
+                    // TODO: Replace command
+                    int targetLength = isMatrix ? 98460 : 254012;
+                    if (this.command == "M2") {
+                        targetLength = 1;
+                    }
+
                     // report the current progress back as a non-finishing-success
                     float progress = (((float)s.length()) / 254012) * 100;
                     double progressInt = Math.floor(progress);
@@ -466,6 +473,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         res.append(String.format("%02X", a));
                     }
                     s = s + res.toString();
+                    if (s.startsWith("4W")) {
+                        isMatrix = true;
+                    } else {
+                        isMatrix = false;
+                    }
 
                     this.resultSend = true;
                     if (s.contains("\u0000")) {
