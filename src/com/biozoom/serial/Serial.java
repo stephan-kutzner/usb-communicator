@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 
 public class Serial extends CordovaPlugin implements SerialListener {
@@ -46,7 +47,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
 
     private String command = "";
-    private boolean resultSend = false;
+    private boolean resultSend = true;
     private double lastReport = 0;
     private double lastRead = 0;
     private double version = 1;
@@ -73,6 +74,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
 
         double startDate = new Date().getTime();
+        int sleepDelay = 5;
+        if (this.command == "M" && !this.resultSend) {
+            sleepDelay = 50;
+        }
         while(true) {
             double now = new Date().getTime();
 
@@ -81,7 +86,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 throw new RuntimeException();
             }
 
-            if (now > (this.lastRead + 50)) {
+            if (now > (this.lastRead + sleepDelay)) {
                 break;
             }
             Log.d(TAG, "Sleeping...");
@@ -424,6 +429,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     this.resultSend = true;
                     break;
                 }
+                // TODO: Replace command
+                case "M2":
                 case "M": {
                     // aox measurement
                     byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
