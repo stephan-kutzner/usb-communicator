@@ -36,6 +36,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private enum Connected { False, Pending, True }
     private UsbSerialPort usbSerialPort;
     private SerialService service;
+    private BlockFormat blockFormat;
     private String TAG = "CommunicatorUSB";
     private static final String ACTION_REQUEST_PERMISSION = "requestPermission";
     private static final String ACTION_WRITE = "writeSerial";
@@ -50,7 +51,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private boolean resultSend = true;
     private double lastReport = 0;
     private double lastRead = 0;
-    private double version = 1;
+    private int version = 1;
     private boolean isMatrix = false;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
@@ -72,6 +73,9 @@ public class Serial extends CordovaPlugin implements SerialListener {
      */
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
 
+        if (this.blockFormat == null) {
+            this.blockFormat = new BlockFormat();
+        }
 
         double startDate = new Date().getTime();
         int sleepDelay = 5;
@@ -178,8 +182,17 @@ public class Serial extends CordovaPlugin implements SerialListener {
             String data = arg_object.getString("command");
             this.command = data;
             byte[] command = convert_command(data).getBytes(StandardCharsets.UTF_8);
+            byte[] inputData;
+            if (this.version == 2) {
+                inputData = this.blockFormat.parseInput(command);
+            } else {
+                inputData = command;
+            }
+//            for (byte b: inputData) {
+//                Log.d(TAG, String.format("%02X", b));
+//            }
             try {
-                service.write(command);
+                service.write(inputData);
             } catch (IOException e) {
                 Log.e(TAG, "ERROR.");
             }
@@ -414,6 +427,21 @@ public class Serial extends CordovaPlugin implements SerialListener {
         if (this.resultSend) {
             return;
         }
+
+        if (this.version == 2 || result[0] == 0x01) {
+            String res = this.blockFormat.parseResponse(result);
+            if (res.startsWith("Error")) {
+                Log.e(TAG, res);
+                this.resultSend = true;
+                this.callbackContext.error(res);
+            } else if (res != "") {
+                this.version = 2;
+                this.callbackContext.success(":" + res);
+                this.resultSend = true;
+            }
+            return;
+        }
+
         try {
             switch (this.command) {
                 case "W": {
