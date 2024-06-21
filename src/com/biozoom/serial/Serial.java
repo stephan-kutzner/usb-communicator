@@ -169,6 +169,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
         else if (ACTION_OPEN.equals(action)) {
             this.command = "open";
+            this.version = 1;
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
             open(opts);
             return true;
