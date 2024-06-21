@@ -429,6 +429,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
             return;
         }
 
+
+        // if the result starts with a start-of-transmission-character,
+        // or if the firmware version has already been identified as v2,
+        // use the new data-parser instead
+
         if (this.version == 2 || result[0] == 0x01) {
             String res = this.blockFormat.parseResponse(result);
             if (res.startsWith("Error")) {

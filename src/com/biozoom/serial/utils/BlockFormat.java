@@ -1,6 +1,9 @@
 package com.biozoom.serial;
 
 public class BlockFormat {
+    /**
+     * hex lookup table for the generator polynomial 0x1021
+     */
     static int[] table = {
             0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
             0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -37,16 +40,36 @@ public class BlockFormat {
     };
 
 
+    /**
+     * perform a step of the fast crc algorithm, updating the current crc value
+     * with the latest byte
+     * @param crc current 2byte crc
+     * @param b new input byte
+     * @return updated 2byte crc
+     */
     private static int fast_crc16(int crc, byte b) {
         crc = ((crc << 8) ^ table[(crc >> 8 ^ b)]) & 0xFFFF;
         return crc;
     }
 
+    /**
+     * perform a step of the fast crc algorithm, updating the current crc value
+     * with the latest integer
+     * Used for characters larger than 128, since java doesn't support uint8
+     * @param crc current 2byte crc
+     * @param b new input integer
+     * @return updated 2byte crc
+     */
     private static int fast_crc16_int(int crc, int b) {
         crc = ((crc << 8) ^ table[(crc >> 8 ^ b)]) & 0xFFFF;
         return crc;
     }
 
+    /**
+     * convert a hex character into its decimal representation
+     * @param c hex character that is to be converted
+     * @return decimal representation of the input character
+     */
     private static int hex_char_to_int(byte c) {
         if (c > 60) {
             return c - 65 + 10;
@@ -54,6 +77,19 @@ public class BlockFormat {
         return c - 48;
     }
 
+    /**
+     * parse a response received from the scanner
+     * if the input is incomplete, return an empty string
+     * if the input is faulty, return an error message
+     * otherwise, return the payload of the input
+     *
+     * this method often checks for i>=bytesLen
+     * if this ever is true, the current index exceeds the length of the input,
+     * meaning that the input is not in a valid secure block format
+     * @param bytes input byte array that contains control characters, length of payload,
+     *              payload, and a checksum
+     * @return byte array containing the payload of the request in form of a json
+     */
     public static String parseResponse(byte[] bytes) {
         long bytesLen = bytes.length;
         if (bytesLen < 7) {
@@ -88,8 +124,6 @@ public class BlockFormat {
             return "Error data length";
         }
 
-
-
         if ( bytes[i++] != 0x03) {
             return "Error sequence 0x03";
         }
@@ -102,7 +136,6 @@ public class BlockFormat {
             tmp += hex_char_to_int(bytes[i]) & 0x0F;
             sum = fast_crc16_int(sum, tmp);
             if (i >= bytesLen) {return "";}
-
         }
 
         if (bytes[i] != 0x04) {
@@ -117,8 +150,15 @@ public class BlockFormat {
         return res;
     }
 
+    /**
+     * encode an input command into the secure block format
+     * this is done by adding a colon at the beginning, followed by 4 bytes denoting the length
+     * of the payload
+     * After that, the payload is entered, followed by 4 bytes for the checksum
+     * @param input input payload that is to be secured
+     * @return secure block format representation of the input bytes
+     */
     public static byte[] parseInput(byte[] input) {
-//        byte[] input = inputStr.getBytes();
         byte[] hex_chars = "0123456789ABCDEF".getBytes();
         int sum = 0xFFFF;
         int i = 0;
