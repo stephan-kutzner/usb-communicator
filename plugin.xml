@@ -26,6 +26,7 @@
         <source-file src="src/com/biozoom/serial/SerialSocket.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/com/biozoom/serial/SerialInputOutputManager.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/com/biozoom/serial/UsbSerialPort.java" target-dir="src/com/biozoom/serial/" />
+        <source-file src="src/com/biozoom/serial/utils/BlockFormat.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/com/biozoom/serial/utils/Constants.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/com/biozoom/serial/utils/MonotonicClock.java" target-dir="src/com/biozoom/serial/" />
         <source-file src="src/com/biozoom/serial/utils/UsbId.java" target-dir="src/com/biozoom/serial/" />
