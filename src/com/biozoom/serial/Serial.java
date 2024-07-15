@@ -525,7 +525,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     }
 
                     s = s + res.toString();
-                    if (s.startsWith("4W")) {
+                    if (s.startsWith("4W") || s.startsWith("5W")) {
                         isMatrix = true;
                     } else {
                         isMatrix = false;
