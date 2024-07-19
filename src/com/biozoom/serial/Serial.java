@@ -139,7 +139,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             };
             IntentFilter filter = new IntentFilter();
             filter.addAction(Constants.INTENT_ACTION_GRANT_USB);
-            cordova.getActivity().registerReceiver(this.broadcastReceiver, filter);
+            cordova.getActivity().registerReceiver(this.broadcastReceiver, filter, RECEIVER_NOT_EXPORTED);
 
         }
 
