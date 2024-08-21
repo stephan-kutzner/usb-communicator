@@ -79,7 +79,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
         double startDate = new Date().getTime();
         int sleepDelay = 5;
-        if (this.command == "M" && !this.resultSend) {
+        if ((this.command == "M" || this.command == "K") && !this.resultSend) {
             sleepDelay = 50;
         }
         while(true) {
@@ -339,6 +339,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
             // usb connect is not asynchronous. connect-success and connect-error are returned immediately from socket.connect
             // for consistency to bluetooth/bluetooth-LE app use same SerialListener and SerialService classes
             Log.d(TAG, "Done");
+
+            Thread.sleep(10);
+            usbSerialPort.setDTR(false);
+            Thread.sleep(10);
+            usbSerialPort.setRTS(false);
+            Thread.sleep(10);
+
             this.callbackContext.success("Connection established.");
         } catch (Exception e) {
             onSerialConnectError(e);
@@ -464,7 +471,32 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     break;
                 }
                 // TODO: Replace command
-                case "M2":
+                case "K": {
+                    // aox measurement
+                    byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
+                    String s = new String(encoded);
+
+                    // TODO: Replace command
+                    int targetLength = isMatrix ? 49230 : 127028;
+//                    if (this.command == "K") {
+//                        targetLength = 1;
+//                    }
+
+                    // report the current progress back as a non-finishing-success
+                    float progress = (((float)s.length()) / targetLength) * 100;
+                    double progressInt = Math.floor(progress);
+                    if (progressInt > this.lastReport) {
+                        this.lastReport = progressInt;
+                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
+                        pluginResult.setKeepCallback(true); // keep callback
+                        this.callbackContext.sendPluginResult(pluginResult);
+                    }
+                    if (s.length() >= targetLength) {
+                        this.resultSend = true;
+                        this.callbackContext.success(s);
+                    }
+                    break;
+                }
                 case "M": {
                     // aox measurement
                     byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
@@ -472,9 +504,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
                     // TODO: Replace command
                     int targetLength = isMatrix ? 98460 : 254012;
-                    if (this.command == "M2") {
-                        targetLength = 1;
-                    }
 
                     // report the current progress back as a non-finishing-success
                     float progress = (((float)s.length()) / targetLength) * 100;
