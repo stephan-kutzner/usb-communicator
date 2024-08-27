@@ -560,7 +560,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         res.append(String.format("%02X", a));
                     }
 
-                    byte partVersion = result[22];
+                    byte partVersion = result[23];
                     String versionString = String.format("%02X", partVersion);
                     Log.d(TAG, "VersionStr: " + versionString);
                     if (versionString.equals("02")) {
