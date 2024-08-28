@@ -15,9 +15,6 @@ const serial = {
 //      [{ opts: opts }],
     );
   },
-  getVersion: function(successCallback, errorCallback) {
-    cordova.exec(successCallback, errorCallback, "Serial", "getVersion", []);
-  },
   open: function (opts, successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, "Serial", "openSerial", [
       { opts: opts },

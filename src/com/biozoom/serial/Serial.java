@@ -42,7 +42,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private static final String ACTION_WRITE = "writeSerial";
     private static final String ACTION_OPEN = "openSerial";
     private static final String ACTION_CLOSE = "closeSerial";
-    private static final String ACTION_VERSION = "getVersion";
 
     private CallbackContext callbackContext;
     private BroadcastReceiver broadcastReceiver;
@@ -166,23 +165,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
             this.command = "requestPermission";
             requestPermission();
-            return true;
-        }
-        else if (ACTION_VERSION.equals(action)) {
-            this.command = "getVersion";
-            try {
-                if (this.callbackContext != null) {
-                    if (this.version > 0) {
-                        this.callbackContext.success(version);
-                    } else {
-                        this.callbackContext.error("Could not get version.");
-                    }
-                }
-            } catch (Exception e) {
-                if (this.callbackContext != null) {
-                    this.callbackContext.error("Could not disconnect scanner.");
-                }
-            }
             return true;
         }
         else if (ACTION_OPEN.equals(action)) {
@@ -362,7 +344,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             usbSerialPort.setDTR(false);
             Thread.sleep(10);
             usbSerialPort.setRTS(false);
-            Thread.sleep(10);
+            Thread.sleep(500);
 
             this.callbackContext.success("Connection established.");
         } catch (Exception e) {
@@ -577,6 +559,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     } else {
                         isMatrix = false;
                     }
+
+                    s = s + "-" + String.valueOf(version);
+
+                    //TODO: RE-ENABLE WHEN FIRMWARE SUPPORTS IT
+                    this.version = 1;
 
                     this.resultSend = true;
                     if (s.contains("\u0000")) {
