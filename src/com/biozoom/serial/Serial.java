@@ -51,6 +51,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private boolean resultSend = true;
     private double lastReport = 0;
     private double lastRead = 0;
+    private double minWait = 0;
     private int version = 1;
     private boolean isMatrix = false;
     private static final String[][] deviceTypes = {
@@ -90,7 +91,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 throw new RuntimeException();
             }
 
-            if (now > (this.lastRead + sleepDelay)) {
+            if (now > (this.lastRead + sleepDelay) && now > this.minWait) {
                 break;
             }
             Log.d(TAG, "Sleeping...");
@@ -194,6 +195,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
 //            }
             try {
                 service.write(inputData);
+                this.minWait = new Date().getTime();
+                Log.d(TAG, "" + data);
+                if (data.equals("W")) {
+                    Log.d(TAG, "COMMAND W RECEIVED");
+                    this.minWait += 1000;
+                }
             } catch (IOException e) {
                 Log.e(TAG, "ERROR.");
             }
