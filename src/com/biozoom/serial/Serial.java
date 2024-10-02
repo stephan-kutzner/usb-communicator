@@ -42,6 +42,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private static final String ACTION_WRITE = "writeSerial";
     private static final String ACTION_OPEN = "openSerial";
     private static final String ACTION_CLOSE = "closeSerial";
+    private JSONObject optsLast;
 
     private CallbackContext callbackContext;
     private BroadcastReceiver broadcastReceiver;
@@ -172,7 +173,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
             this.command = "open";
             this.version = 1;
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
-            open(opts);
+            this.optsLast = opts;
+            open(opts, true);
             return true;
         }
         else if (ACTION_CLOSE.equals(action)) {
@@ -202,7 +204,9 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     this.minWait += 1000;
                 }
             } catch (IOException e) {
-                Log.e(TAG, "ERROR.");
+                Log.e(TAG, "ERROR. Retrying...");
+                this.retry();
+                return true;
             }
 
             return true;
@@ -308,7 +312,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
      * use the baudrate provided via the opts argument
      * @param opts object containing the parameter 'baudRate'
      */
-    private void open(final JSONObject opts) {
+    private void open(final JSONObject opts, boolean feedback) {
         UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
         int baudrate;
@@ -321,14 +325,18 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
         UsbSerialDriver driver = getDevice(usbManager);
         if(driver == null) {
-            this.callbackContext.error("No driver found.");
+            if (feedback) {
+                this.callbackContext.error("No driver found.");
+            }
             return;
         }
         usbSerialPort = driver.getPorts().get(0);
         UsbDeviceConnection usbConnection = usbManager.openDevice(driver.getDevice());
 
         if (!usbManager.hasPermission(driver.getDevice())) {
-            this.callbackContext.error("Permission not granted.");
+            if (feedback) {
+                this.callbackContext.error("Permission not granted.");
+            }
             return;
         }
 
@@ -353,11 +361,15 @@ public class Serial extends CordovaPlugin implements SerialListener {
             usbSerialPort.setRTS(false);
             Thread.sleep(500);
 
-            this.callbackContext.success("Connection established.");
+            if (feedback) {
+                this.callbackContext.success("Connection established.");
+            }
         } catch (Exception e) {
             onSerialConnectError(e);
             Log.d(TAG, "Could not open port.");
-            this.callbackContext.error("Could not establish connection.");
+            if (feedback) {
+                this.callbackContext.error("Could not establish connection.");
+            }
         }
     }
 
@@ -398,6 +410,77 @@ public class Serial extends CordovaPlugin implements SerialListener {
         if(service != null && !cordova.getActivity().isChangingConfigurations())
             service.detach();
         super.onStop();
+    }
+
+    private void retry() {
+        for(int i = 0; i < 5; i++) {
+            try {
+                Log.e(TAG, "Attempt " + i + "...");
+                if (this.broadcastReceiver != null) {
+                    try {
+                        cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
+                    } catch (Exception IllegalArgumentException) {
+                        //
+                    }
+                }
+                this.broadcastReceiver = null;
+                this.broadcastReceiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
+                            Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                            Log.d(TAG, "Granted: " + granted);
+                        }
+                    }
+                };
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(Constants.INTENT_ACTION_GRANT_USB);
+                cordova.getActivity().registerReceiver(this.broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+
+                if (this.service == null) {
+                    this.service = new SerialService();
+                    this.service.attach(this);
+                }
+                Thread.sleep(100);
+
+
+
+//                disconnect();
+//                Thread.sleep(1000);
+                open(this.optsLast, false);
+                Thread.sleep(1000);
+                String data = this.command;
+                byte[] command = convert_command(data).getBytes(StandardCharsets.UTF_8);
+                byte[] inputData;
+                if (this.version == 2) {
+                    inputData = this.blockFormat.parseInput(command);
+                } else {
+                    inputData = command;
+                }
+//            for (byte b: inputData) {
+//                Log.d(TAG, String.format("%02X", b));
+//            }
+                try {
+                    service.write(inputData);
+                    this.minWait = new Date().getTime();
+                    Log.d(TAG, "" + data);
+                    if (data.equals("W")) {
+                        Log.d(TAG, "COMMAND W RECEIVED");this.minWait += 1000;
+                    }
+                    return;
+                } catch (IOException e) {
+                    Log.e(TAG, "ERROR.");
+                    Thread.sleep(200);
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failure.");
+                try {
+                    Thread.sleep((i + 1) * 200);
+                } catch (Exception e2) {}
+            }
+            //
+        }
     }
 
     @Override
