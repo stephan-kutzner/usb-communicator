@@ -49,7 +49,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
 
     private String command = "";
-    private boolean resultSend = true;
+    private boolean resultSent = true;
     private double lastReport = 0;
     private double lastRead = 0;
     private double minWait = 0;
@@ -81,7 +81,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
         double startDate = new Date().getTime();
         int sleepDelay = 5;
-        if ((this.command == "M" || this.command == "K") && !this.resultSend) {
+        if ((this.command == "M" || this.command == "K") && !this.resultSent) {
             sleepDelay = 50;
         }
         while(true) {
@@ -107,7 +107,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
         this.lastRead = now;
         this.lastReport = 0;
         this.result = new ArrayList<Byte>();
-        this.resultSend = false;
+        this.resultSent = false;
         this.callbackContext = callbackContext;
 
         /**
@@ -522,7 +522,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
         for (int i = 0; i < this.result.size(); i++) {
             result[i] = this.result.get(i);
         }
-        if (this.resultSend) {
+        if (this.resultSent) {
             return;
         }
 
@@ -535,12 +535,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
             String res = this.blockFormat.parseResponse(result);
             if (res.startsWith("Error")) {
                 Log.e(TAG, res);
-                this.resultSend = true;
+                this.resultSent = true;
                 this.callbackContext.error(res);
             } else if (res != "") {
                 this.version = 2;
                 this.callbackContext.success(":" + res);
-                this.resultSend = true;
+                this.resultSent = true;
             }
             return;
         }
@@ -557,7 +557,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     float[] values = {fLow, fHigh};
                     String s = Arrays.toString(values);
                     this.callbackContext.success(s);
-                    this.resultSend = true;
+                    this.resultSent = true;
                     break;
                 }
                 // TODO: Replace command
@@ -582,7 +582,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         this.callbackContext.sendPluginResult(pluginResult);
                     }
                     if (s.length() >= targetLength) {
-                        this.resultSend = true;
+                        this.resultSent = true;
                         this.callbackContext.success(s);
                     }
                     break;
@@ -605,7 +605,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         this.callbackContext.sendPluginResult(pluginResult);
                     }
                     if (s.length() >= targetLength) {
-                        this.resultSend = true;
+                        this.resultSent = true;
                         this.callbackContext.success(s);
                     }
                     break;
@@ -614,7 +614,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     // get a status-json
                     String s = new String(result, StandardCharsets.UTF_8);
                     if (s.contains("\n")) {
-                        this.resultSend = true;
+                        this.resultSent = true;
                         this.callbackContext.success(s);
                     }
                     break;
@@ -655,7 +655,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     //TODO: RE-ENABLE WHEN FIRMWARE SUPPORTS IT
                     this.version = 1;
 
-                    this.resultSend = true;
+                    this.resultSent = true;
                     if (s.contains("\u0000")) {
                         this.callbackContext.error(s);
                         break;
@@ -670,7 +670,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     break;
                 }
                 default: {
-                    this.resultSend = true;
+                    this.resultSent = true;
                     this.callbackContext.success("Execution done.");
                     break;
                 }
