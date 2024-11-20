@@ -734,6 +734,22 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                 } catch (Exception ex) {
                                 }
 
+                                try {
+                                    JSONObject obj = new JSONObject(s);
+                                    String cmd = obj.getString("command");
+                                    if (
+                                            (this.command.startsWith("delete") && !(cmd.equals("delete")))
+                                                    || (this.command.startsWith("hand") && !(cmd.startsWith("hand")))
+                                                    || (this.command.startsWith("measure") && !(cmd.startsWith("measure")))
+
+                                    ) {
+                                        this.result = new ArrayList<Byte>();
+                                        break;
+                                    }
+                                } catch (Exception ex) {
+
+                                }
+
                                 if (s.contains("error")) {
                                     this.result = new ArrayList<Byte>();
                                     break;
