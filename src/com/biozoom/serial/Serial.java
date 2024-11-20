@@ -199,7 +199,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 service.write(inputData);
                 this.minWait = new Date().getTime();
                 Log.d(TAG, "" + data);
-                if (data.equals("W")) {
+                if (data.equals("W") || data.startsWith("hand\n")) {
                     Log.d(TAG, "COMMAND W RECEIVED");
                     this.minWait += 1000;
                 }
@@ -464,7 +464,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     service.write(inputData);
                     this.minWait = new Date().getTime();
                     Log.d(TAG, "" + data);
-                    if (data.equals("W")) {
+                    if (data.equals("W") || data.startsWith("hand\n")) {
                         Log.d(TAG, "COMMAND W RECEIVED");this.minWait += 1000;
                     }
                     return;
@@ -508,179 +508,243 @@ public class Serial extends CordovaPlugin implements SerialListener {
          * add each received byte to the persistent result-list,
          * then handle the full result if possible
          */
-
-        lastRead = new Date().getTime();
-        Iterator<byte[]> desIterate = datas.iterator();
-        while(desIterate.hasNext()) {
-            byte[] el = desIterate.next();
-            for (byte e : el) {
-                this.result.add(e);
-            }
-        }
-        // transform the persistent result-list into an array
-        byte[] result = new byte[this.result.size()];
-        for (int i = 0; i < this.result.size(); i++) {
-            result[i] = this.result.get(i);
-        }
-        if (this.resultSent) {
-            return;
-        }
-
-        if (result.length == 0) {
-            return;
-        }
-
-
-        // if the result starts with a start-of-transmission-character,
-        // or if the firmware version has already been identified as v2,
-        // use the new data-parser instead
-
-        if (this.version == 2 || result[0] == 0x01) {
-            String res = this.blockFormat.parseResponse(result);
-            if (res.startsWith("Error")) {
-                Log.e(TAG, res);
-                this.resultSent = true;
-                this.callbackContext.error(res);
-            } else if (res != "") {
-                this.version = 2;
-                this.callbackContext.success(":" + res);
-                this.resultSent = true;
-            }
-            return;
-        }
-
         try {
-            switch (this.command) {
-                case "W": {
-                    // hand-recognition
-                    if (result.length < 14) {
-                        break;
-                    }
-                    float fLow = ByteBuffer.wrap(Arrays.copyOfRange(result, 2, 6)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    float fHigh = ByteBuffer.wrap(Arrays.copyOfRange(result, 10, 14)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    float[] values = {fLow, fHigh};
-                    String s = Arrays.toString(values);
-                    this.callbackContext.success(s);
+
+
+            lastRead = new Date().getTime();
+            Iterator<byte[]> desIterate = datas.iterator();
+            while (desIterate.hasNext()) {
+                byte[] el = desIterate.next();
+                for (byte e : el) {
+                    this.result.add(e);
+                }
+            }
+            // transform the persistent result-list into an array
+            byte[] result = new byte[this.result.size()];
+            for (int i = 0; i < this.result.size(); i++) {
+                result[i] = this.result.get(i);
+            }
+            if (this.resultSent) {
+                return;
+            }
+
+            if (result.length == 0) {
+                return;
+            }
+
+
+            // if the result starts with a start-of-transmission-character,
+            // or if the firmware version has already been identified as v2,
+            // use the new data-parser instead
+
+            if (this.version == 2 || result[0] == 0x01) {
+                String res = this.blockFormat.parseResponse(result);
+                if (res.startsWith("Error")) {
+                    Log.e(TAG, res);
                     this.resultSent = true;
-                    break;
+                    this.callbackContext.error(res);
+                } else if (res != "") {
+                    this.version = 2;
+                    this.callbackContext.success(":" + res);
+                    this.resultSent = true;
                 }
-                // TODO: Replace command
-                case "K": {
-                    // aox measurement
-                    byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
-                    String s = new String(encoded);
+                return;
+            }
 
-                    // TODO: Replace command
-                    int targetLength = isMatrix ? 49230 : 127028;
-//                    if (this.command == "K") {
-//                        targetLength = 1;
-//                    }
-
-                    // report the current progress back as a non-finishing-success
-                    float progress = (((float)s.length()) / targetLength) * 100;
-                    double progressInt = Math.floor(progress);
-                    if (progressInt > this.lastReport) {
-                        this.lastReport = progressInt;
-                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
-                        pluginResult.setKeepCallback(true); // keep callback
-                        this.callbackContext.sendPluginResult(pluginResult);
-                    }
-                    if (s.length() >= targetLength) {
-                        this.resultSent = true;
+            try {
+                switch (this.command) {
+                    case "W": {
+                        // hand-recognition
+                        if (result.length < 14) {
+                            break;
+                        }
+                        float fLow = ByteBuffer.wrap(Arrays.copyOfRange(result, 2, 6)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                        float fHigh = ByteBuffer.wrap(Arrays.copyOfRange(result, 10, 14)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                        float[] values = {fLow, fHigh};
+                        String s = Arrays.toString(values);
                         this.callbackContext.success(s);
-                    }
-                    break;
-                }
-                case "M": {
-                    // aox measurement
-                    byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
-                    String s = new String(encoded);
-
-                    // TODO: Replace command
-                    int targetLength = isMatrix ? 98460 : 254012;
-
-                    // report the current progress back as a non-finishing-success
-                    float progress = (((float)s.length()) / targetLength) * 100;
-                    double progressInt = Math.floor(progress);
-                    if (progressInt > this.lastReport) {
-                        this.lastReport = progressInt;
-                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
-                        pluginResult.setKeepCallback(true); // keep callback
-                        this.callbackContext.sendPluginResult(pluginResult);
-                    }
-                    if (s.length() >= targetLength) {
                         this.resultSent = true;
-                        this.callbackContext.success(s);
-                    }
-                    break;
-                }
-                case "get_status\n": {
-                    // get a status-json
-                    String s = new String(result, StandardCharsets.UTF_8);
-                    if (s.contains("\n")) {
-                        this.resultSent = true;
-                        this.callbackContext.success(s);
-                    }
-                    break;
-                }
-                case "I": {
-                    // get the serial number of the scanner
-                    if (result.length < 28) {
                         break;
                     }
-                    byte[] part1 = Arrays.copyOfRange(result, 2, 2+6);
-                    byte[] part2 = Arrays.copyOfRange(result, 2+6, 2+13);
-                    String s = new String(part1, StandardCharsets.UTF_8);
-                    StringBuilder res = new StringBuilder();
-                    for (byte a: part2) {
-                        res.append(String.format("%02X", a));
-                    }
+                    // TODO: Replace command
+                    case "K": {
+                        // aox measurement
+                        byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
+                        String s = new String(encoded);
 
-                    byte partVersion = result[23];
-                    String versionString = String.format("%02X", partVersion);
-                    Log.d(TAG, "VersionStr: " + versionString);
-                    if (versionString.equals("02")) {
-                        this.version = 2;
-                        Log.d(TAG, "Version set to 2");
-                    } else {
+                        // TODO: Replace command
+                        int targetLength = isMatrix ? 49230 : 127028;
+                        //                    if (this.command == "K") {
+                        //                        targetLength = 1;
+                        //                    }
+
+                        // report the current progress back as a non-finishing-success
+                        float progress = (((float) s.length()) / targetLength) * 100;
+                        double progressInt = Math.floor(progress);
+                        if (progressInt > this.lastReport) {
+                            this.lastReport = progressInt;
+                            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
+                            pluginResult.setKeepCallback(true); // keep callback
+                            this.callbackContext.sendPluginResult(pluginResult);
+                        }
+                        if (s.length() >= targetLength) {
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
+                        }
+                        break;
+                    }
+                    case "read-flash":
+                    case "M": {
+                        // aox measurement
+                        byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
+                        String s = new String(encoded);
+
+                        // TODO: Replace command
+                        int targetLength = isMatrix ? 98460 : 254012;
+
+                        // report the current progress back as a non-finishing-success
+                        float progress = (((float) s.length()) / targetLength) * 100;
+                        double progressInt = Math.floor(progress);
+                        if (progressInt > this.lastReport) {
+                            this.lastReport = progressInt;
+                            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, String.valueOf(progressInt));
+                            pluginResult.setKeepCallback(true); // keep callback
+                            this.callbackContext.sendPluginResult(pluginResult);
+                        }
+                        if (s.length() >= targetLength) {
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
+                        }
+                        break;
+                    }
+                    case "get_status":
+                    case "get_status\n": {
+                        // get a status-json
+                        String s = new String(result, StandardCharsets.UTF_8);
+
+//                        Log.d(TAG, "resStr: " + s);
+                        if (s.contains("\n")) {
+                            try {
+                                JSONObject obj = new JSONObject(s);
+                                String type = obj.getString("type");
+                                if (type.equals("info")) {
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                            } catch (Exception ex) {
+                            }
+
+                            if (s.contains("error")) {
+                                this.result = new ArrayList<Byte>();
+                                break;
+                            }
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
+                        }
+                        break;
+                    }
+                    case "I": {
+                        // get the serial number of the scanner
+                        if (result.length < 28) {
+                            break;
+                        }
+                        byte[] part1 = Arrays.copyOfRange(result, 2, 2 + 6);
+                        byte[] part2 = Arrays.copyOfRange(result, 2 + 6, 2 + 13);
+                        String s = new String(part1, StandardCharsets.UTF_8);
+                        StringBuilder res = new StringBuilder();
+                        for (byte a : part2) {
+                            res.append(String.format("%02X", a));
+                        }
+
+                        byte partVersion = result[23];
+                        String versionString = String.format("%02X", partVersion);
+                        Log.d(TAG, "VersionStr: " + versionString);
+                        if (versionString.equals("02")) {
+                            this.version = 2;
+                            Log.d(TAG, "Version set to 2");
+                        } else {
+                            this.version = 1;
+                            Log.d(TAG, "Version set to 1");
+                        }
+
+                        s = s + res.toString();
+                        if (s.startsWith("4W") || s.startsWith("5W")) {
+                            isMatrix = true;
+                        } else {
+                            isMatrix = false;
+                        }
+
+                        s = s + "-" + String.valueOf(version);
+
+                        //TODO: RE-ENABLE WHEN FIRMWARE SUPPORTS IT
                         this.version = 1;
-                        Log.d(TAG, "Version set to 1");
-                    }
 
-                    s = s + res.toString();
-                    if (s.startsWith("4W") || s.startsWith("5W")) {
-                        isMatrix = true;
-                    } else {
-                        isMatrix = false;
-                    }
-
-                    s = s + "-" + String.valueOf(version);
-
-                    //TODO: RE-ENABLE WHEN FIRMWARE SUPPORTS IT
-                    this.version = 1;
-
-                    this.resultSent = true;
-                    if (s.contains("\u0000")) {
-                        this.callbackContext.error(s);
+                        this.resultSent = true;
+                        if (s.contains("\u0000")) {
+                            this.callbackContext.error(s);
+                            break;
+                        }
+                        this.callbackContext.success(s);
                         break;
                     }
-                    this.callbackContext.success(s);
-                    break;
+                    case "requestPermission":
+                    case "open":
+                    case "close": {
+                        // ignore the result
+                        break;
+                    }
+                    case "status": {
+                        String s = new String(result, StandardCharsets.UTF_8);
+                        if (s.contains("\n")) {
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
+                        }
+                        break;
+                    }
+                    default: {
+                        if (
+                                this.command.startsWith("measure")
+                                        || this.command.startsWith("hand")
+                                        || this.command.startsWith("read-flash")
+                        ) {
+                            // get a status-json
+                            String s = new String(result, StandardCharsets.UTF_8);
+
+
+
+//                            Log.d(TAG, "resStr: " + s);
+                            if (s.contains("\n")) {
+                                try {
+                                    JSONObject obj = new JSONObject(s);
+                                    String type = obj.getString("type");
+                                    if (type.equals("info")) {
+                                        this.result = new ArrayList<Byte>();
+                                        break;
+                                    }
+                                } catch (Exception ex) {
+                                }
+
+                                if (s.contains("error")) {
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                                this.resultSent = true;
+                                this.callbackContext.success(s);
+                            }
+                            break;
+                        }
+                        this.resultSent = true;
+                        this.callbackContext.success("Execution done.");
+                        break;
+                    }
                 }
-                case "requestPermission":
-                case "open":
-                case "close": {
-                    // ignore the result
-                    break;
-                }
-                default: {
-                    this.resultSent = true;
-                    this.callbackContext.success("Execution done.");
-                    break;
-                }
+            } catch (Exception e) {
+                Log.d(TAG, "ERROR");
             }
         } catch (Exception e) {
-            Log.d(TAG, "ERROR");
+            this.resultSent = true;
+            this.callbackContext.error("Error: Connection lost");
+//            return;
         }
     }
 
