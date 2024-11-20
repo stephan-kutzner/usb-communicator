@@ -667,13 +667,14 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         byte partVersion = result[23];
                         String versionString = String.format("%02X", partVersion);
                         Log.d(TAG, "VersionStr: " + versionString);
-                        if (versionString.equals("02")) {
-                            this.version = 2;
-                            Log.d(TAG, "Version set to 2");
-                        } else {
-                            this.version = 1;
-                            Log.d(TAG, "Version set to 1");
-                        }
+                        this.version = 1;
+//                        if (versionString.equals("02")) {
+//                            this.version = 2;
+//                            Log.d(TAG, "Version set to 2");
+//                        } else {
+//                            this.version = 1;
+//                            Log.d(TAG, "Version set to 1");
+//                        }
 
                         s = s + res.toString();
                         if (s.startsWith("4W") || s.startsWith("5W")) {
