@@ -706,6 +706,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                 this.command.startsWith("measure")
                                         || this.command.startsWith("hand")
                                         || this.command.startsWith("read-flash")
+                                        || this.command.startsWith("delete")
                         ) {
                             // get a status-json
                             String s = new String(result, StandardCharsets.UTF_8);
