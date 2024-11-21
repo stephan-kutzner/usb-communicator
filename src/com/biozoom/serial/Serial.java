@@ -716,13 +716,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                         || this.command.startsWith("hand")
                                         || this.command.startsWith("read-flash")
                                         || this.command.startsWith("delete")
+                                        || this.command.startsWith("ap")
                         ) {
                             // get a status-json
                             String s = new String(result, StandardCharsets.UTF_8);
-
-
-
-//                            Log.d(TAG, "resStr: " + s);
                             if (s.contains("\n")) {
                                 try {
                                     JSONObject obj = new JSONObject(s);
@@ -741,6 +738,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                             (this.command.startsWith("delete") && !(cmd.equals("delete")))
                                                     || (this.command.startsWith("hand") && !(cmd.startsWith("hand")))
                                                     || (this.command.startsWith("measure") && !(cmd.startsWith("measure")))
+                                                    || (this.command.startsWith("ap") && !(cmd.startsWith("ap")))
 
                                     ) {
                                         this.result = new ArrayList<Byte>();
