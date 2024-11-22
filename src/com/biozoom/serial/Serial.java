@@ -742,7 +742,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     }
                     default: {
                         String s = new String(result, StandardCharsets.UTF_8);
-                        Log.d(TAG, s);
                         if (s.contains("\n")) {
                             Log.d(TAG, "uuid: " + this.uuid + ", command: " + this.command);
                             try {
@@ -756,7 +755,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                     this.result = new ArrayList<Byte>();
                                     break;
                                 }
-                                Log.d(TAG, "UUID check complete");
                             } catch (Exception ex) {
                             }
 
@@ -771,7 +769,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                     this.result = new ArrayList<Byte>();
                                     break;
                                 }
-                                Log.d(TAG, "Command check complete");
                             } catch (Exception ex) {
 
                             }
