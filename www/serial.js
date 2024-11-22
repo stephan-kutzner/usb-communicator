@@ -20,9 +20,12 @@ const serial = {
       { opts: opts },
     ]);
   },
-  write: function (command, successCallback, errorCallback) {
+  write: function (command, version, id, successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, "Serial", "writeSerial", [
-      { command: command },
+      { command: command,
+        version: version,
+        id: id
+       },
     ]);
   },
   close: function (successCallback, errorCallback) {

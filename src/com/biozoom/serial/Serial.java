@@ -54,6 +54,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private double lastRead = 0;
     private double minWait = 0;
     private int version = 1;
+    private String uuid = "";
     private boolean isMatrix = false;
     private static final String[][] deviceTypes = {
             {"04b4", "0003", "CdcAcmSerialDriver"},
@@ -171,7 +172,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
         else if (ACTION_OPEN.equals(action)) {
             this.command = "open";
-            this.version = 1;
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
             this.optsLast = opts;
             open(opts, true);
@@ -184,22 +184,28 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
         else if (ACTION_WRITE.equals(action)) {
             String data = arg_object.getString("command");
-            this.command = data;
-            byte[] command = convert_command(data).getBytes(StandardCharsets.UTF_8);
-            byte[] inputData;
+            String versionStr = arg_object.getString("version");
+            String uuid = arg_object.getString("id");
+            this.version = Integer.parseInt(versionStr);
+            this.uuid = uuid;
             if (this.version == 2) {
-                inputData = this.blockFormat.parseInput(command);
-            } else {
-                inputData = command;
+                data = data.replace("\n", "");
+                if (data.contains("?")) {
+                    data = data + "&call-index=" + uuid;
+                } else {
+                    data = data + "?call-index=" + uuid;
+                }
+                data += "\n";
             }
-//            for (byte b: inputData) {
-//                Log.d(TAG, String.format("%02X", b));
-//            }
+            this.command = data;
+            byte[] command = data.getBytes(StandardCharsets.UTF_8);
+            byte[] inputData;
+            inputData = command;
             try {
                 service.write(inputData);
                 this.minWait = new Date().getTime();
                 Log.d(TAG, "" + data);
-                if (data.equals("W") || data.startsWith("hand\n")) {
+                if (data.equals("W") || data.startsWith("hand")) {
                     Log.d(TAG, "COMMAND W RECEIVED");
                     this.minWait += 1000;
                 }
@@ -413,7 +419,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     }
 
     private void retry() {
-        for(int i = 0; i < 5; i++) {
+        for(int i = 0; i < 2; i++) {
             try {
                 Log.e(TAG, "Attempt " + i + "...");
                 if (this.broadcastReceiver != null) {
@@ -450,13 +456,9 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 open(this.optsLast, false);
                 Thread.sleep(1000);
                 String data = this.command;
-                byte[] command = convert_command(data).getBytes(StandardCharsets.UTF_8);
+                byte[] command = data.getBytes(StandardCharsets.UTF_8);
                 byte[] inputData;
-                if (this.version == 2) {
-                    inputData = this.blockFormat.parseInput(command);
-                } else {
-                    inputData = command;
-                }
+                inputData = command;
 //            for (byte b: inputData) {
 //                Log.d(TAG, String.format("%02X", b));
 //            }
@@ -464,7 +466,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     service.write(inputData);
                     this.minWait = new Date().getTime();
                     Log.d(TAG, "" + data);
-                    if (data.equals("W") || data.startsWith("hand\n")) {
+                    if (data.equals("W") || data.startsWith("hand")) {
                         Log.d(TAG, "COMMAND W RECEIVED");this.minWait += 1000;
                     }
                     return;
@@ -504,6 +506,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
      * @param datas byte-array of raw data
      */
     public void onSerialRead(ArrayDeque<byte[]> datas) {
+        if (this.version == 2) {
+            this.onSerialRead2(datas);
+            return;
+        }
         /**
          * add each received byte to the persistent result-list,
          * then handle the full result if possible
@@ -529,25 +535,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
 
             if (result.length == 0) {
-                return;
-            }
-
-
-            // if the result starts with a start-of-transmission-character,
-            // or if the firmware version has already been identified as v2,
-            // use the new data-parser instead
-
-            if (this.version == 2 || result[0] == 0x01) {
-                String res = this.blockFormat.parseResponse(result);
-                if (res.startsWith("Error")) {
-                    Log.e(TAG, res);
-                    this.resultSent = true;
-                    this.callbackContext.error(res);
-                } else if (res != "") {
-                    this.version = 2;
-                    this.callbackContext.success(":" + res);
-                    this.resultSent = true;
-                }
                 return;
             }
 
@@ -593,7 +580,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         }
                         break;
                     }
-                    case "read-flash":
                     case "M": {
                         // aox measurement
                         byte[] encoded = Base64.encode(result, Base64.NO_WRAP);
@@ -664,10 +650,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
                             res.append(String.format("%02X", a));
                         }
 
-                        byte partVersion = result[23];
-                        String versionString = String.format("%02X", partVersion);
-                        Log.d(TAG, "VersionStr: " + versionString);
-                        this.version = 1;
+//                        byte partVersion = result[23];
+//                        String versionString = String.format("%02X", partVersion);
+//                        Log.d(TAG, "VersionStr: " + versionString);
+//                        this.version = 1;
 //                        if (versionString.equals("02")) {
 //                            this.version = 2;
 //                            Log.d(TAG, "Version set to 2");
@@ -683,10 +669,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                             isMatrix = false;
                         }
 
-                        s = s + "-" + String.valueOf(version);
-
-                        //TODO: RE-ENABLE WHEN FIRMWARE SUPPORTS IT
-                        this.version = 1;
+                        s = s + "-1";
 
                         this.resultSent = true;
                         if (s.contains("\u0000")) {
@@ -711,54 +694,92 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         break;
                     }
                     default: {
-                        if (
-                                this.command.startsWith("measure")
-                                        || this.command.startsWith("hand")
-                                        || this.command.startsWith("read-flash")
-                                        || this.command.startsWith("delete")
-                                        || this.command.startsWith("ap")
-                        ) {
-                            // get a status-json
-                            String s = new String(result, StandardCharsets.UTF_8);
-                            if (s.contains("\n")) {
-                                try {
-                                    JSONObject obj = new JSONObject(s);
-                                    String type = obj.getString("type");
-                                    if (type.equals("info")) {
-                                        this.result = new ArrayList<Byte>();
-                                        break;
-                                    }
-                                } catch (Exception ex) {
-                                }
+                        this.resultSent = true;
+                        this.callbackContext.success("Execution done.");
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                Log.d(TAG, "ERROR");
+            }
+        } catch (Exception e) {
+            this.resultSent = true;
+            this.callbackContext.error("Error: Connection lost");
+//            return;
+        }
+    }
 
-                                try {
-                                    JSONObject obj = new JSONObject(s);
-                                    String cmd = obj.getString("command");
-                                    if (
-                                            (this.command.startsWith("delete") && !(cmd.equals("delete")))
-                                                    || (this.command.startsWith("hand") && !(cmd.startsWith("hand")))
-                                                    || (this.command.startsWith("measure") && !(cmd.startsWith("measure")))
-                                                    || (this.command.startsWith("ap") && !(cmd.startsWith("ap")))
+    public void onSerialRead2(ArrayDeque<byte[]> datas) {
+        try {
+            lastRead = new Date().getTime();
+            Iterator<byte[]> desIterate = datas.iterator();
+            while (desIterate.hasNext()) {
+                byte[] el = desIterate.next();
+                for (byte e : el) {
+                    this.result.add(e);
+                }
+            }
+            // transform the persistent result-list into an array
+            byte[] result = new byte[this.result.size()];
+            for (int i = 0; i < this.result.size(); i++) {
+                result[i] = this.result.get(i);
+            }
+            if (this.resultSent) {
+                return;
+            }
 
-                                    ) {
-                                        this.result = new ArrayList<Byte>();
-                                        break;
-                                    }
-                                } catch (Exception ex) {
+            if (result.length == 0) {
+                return;
+            }
 
-                                }
-
-                                if (s.contains("error")) {
+            try {
+                switch (this.command) {
+                    case "requestPermission":
+                    case "open":
+                    case "close": {
+                        // ignore the result
+                        break;
+                    }
+                    default: {
+                        String s = new String(result, StandardCharsets.UTF_8);
+                        Log.d(TAG, s);
+                        if (s.contains("\n")) {
+                            Log.d(TAG, "uuid: " + this.uuid + ", command: " + this.command);
+                            try {
+                                JSONObject obj = new JSONObject(s);
+                                if (!obj.has("call-index")) {
                                     this.result = new ArrayList<Byte>();
                                     break;
                                 }
-                                this.resultSent = true;
-                                this.callbackContext.success(s);
+                                String callUUID = obj.getString("call-index");
+                                if (!callUUID.equals(this.uuid)) {
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                                Log.d(TAG, "UUID check complete");
+                            } catch (Exception ex) {
                             }
-                            break;
+
+                            try {
+                                JSONObject obj = new JSONObject(s);
+                                if (!obj.has("command")) {
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                                String cmd = obj.getString("command");
+                                if (!(this.command.startsWith(cmd))) {
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                                Log.d(TAG, "Command check complete");
+                            } catch (Exception ex) {
+
+                            }
+
+
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
                         }
-                        this.resultSent = true;
-                        this.callbackContext.success("Execution done.");
                         break;
                     }
                 }
@@ -777,18 +798,4 @@ public class Serial extends CordovaPlugin implements SerialListener {
         disconnect();
     }
 
-    private String convert_command(String cmd) {
-        if (this.version == 2) {
-            switch (cmd) {
-                case "get_status\n": {
-                    return "S";
-                }
-                default: {
-                    return cmd;
-                }
-            }
-        }
-
-        return cmd;
-    }
 }
