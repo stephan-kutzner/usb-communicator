@@ -746,14 +746,12 @@ public class Serial extends CordovaPlugin implements SerialListener {
                             Log.d(TAG, "uuid: " + this.uuid + ", command: " + this.command);
                             try {
                                 JSONObject obj = new JSONObject(s);
-                                if (!obj.has("call-index")) {
-                                    this.result = new ArrayList<Byte>();
-                                    break;
-                                }
-                                String callUUID = obj.getString("call-index");
-                                if (!callUUID.equals(this.uuid)) {
-                                    this.result = new ArrayList<Byte>();
-                                    break;
+                                if (obj.has("call-index")) {
+                                    String callUUID = obj.getString("call-index");
+                                    if (!callUUID.equals(this.uuid)) {
+                                        this.result = new ArrayList<Byte>();
+                                        break;
+                                    }
                                 }
                             } catch (Exception ex) {
                             }
