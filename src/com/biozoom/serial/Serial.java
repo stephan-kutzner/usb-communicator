@@ -673,7 +673,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         s = s + "-1";
 
                         this.resultSent = true;
-                        if (s.contains("\u0000")) {
+                        if (s.contains("\u0000") || (s.length() - s.replace("F", "").length()) < 10) {
                             this.callbackContext.error(s);
                             break;
                         }
