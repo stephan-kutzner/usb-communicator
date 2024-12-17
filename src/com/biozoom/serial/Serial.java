@@ -632,6 +632,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                 this.result = new ArrayList<Byte>();
                                 break;
                             }
+                            isMatrix = false;
                             this.resultSent = true;
                             this.callbackContext.success(s);
                         }
@@ -771,7 +772,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
                             }
 
-
+                            isMatrix = false;
                             this.resultSent = true;
                             this.callbackContext.success(s);
                         }
