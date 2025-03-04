@@ -694,6 +694,19 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         }
                         break;
                     }
+                    case "flash_erase":
+                    case "flash_erase\n": {
+                        String s = new String(result, StandardCharsets.UTF_8);
+                        if (s.contains("\n")) {
+                            if (s.contains("flash_erase")) {
+                                this.result = new ArrayList<Byte>();
+                                break;
+                            }
+                            this.resultSent = true;
+                            this.callbackContext.success(s);
+                        }
+                        break;
+                    }
                     default: {
                         this.resultSent = true;
                         this.callbackContext.success("Execution done.");
