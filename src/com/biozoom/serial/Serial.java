@@ -615,8 +615,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
                             break;
                         }
                         float fLow = ByteBuffer.wrap(Arrays.copyOfRange(result, 2, 6)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                        float fNear = ByteBuffer.wrap(Arrays.copyOfRange(result, 6, 10)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                        float fFar = ByteBuffer.wrap(Arrays.copyOfRange(result, 26, 30)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                         float fHigh = ByteBuffer.wrap(Arrays.copyOfRange(result, 10, 14)).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                        float[] values = {fLow, fHigh};
+                        float[] values = {fLow, fHigh, fNear, fFar};
                         String s = Arrays.toString(values);
                         this.callbackContext.success(s);
                         this.resultSent = true;
