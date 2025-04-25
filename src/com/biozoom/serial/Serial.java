@@ -42,6 +42,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private static final String ACTION_WRITE = "writeSerial";
     private static final String ACTION_OPEN = "openSerial";
     private static final String ACTION_CLOSE = "closeSerial";
+    private static final String ACTION_UPDATE = "updateScanner";
+    private static final String ACTION_UPDATE_PROGRESS = "updateScannerProgress";
     private JSONObject optsLast;
 
     private CallbackContext callbackContext;
@@ -63,6 +65,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
     };
 
     private List<Byte> result;
+
+    private int updateNum = -1;
+    private int updateProgress = 0;
+    private boolean updateRunning = false;
+    private boolean interruptUpdate = false;
+
+    private Thread subthread;
 
 
     /**
@@ -167,11 +176,13 @@ public class Serial extends CordovaPlugin implements SerialListener {
         // request permission
         if (ACTION_REQUEST_PERMISSION.equals(action)) {
             this.command = "requestPermission";
+            this.interruptUpdate = true;
             requestPermission();
             return true;
         }
         else if (ACTION_OPEN.equals(action)) {
             this.command = "open";
+            this.interruptUpdate = true;
             JSONObject opts = arg_object.has("opts")? arg_object.getJSONObject("opts") : new JSONObject();
             this.optsLast = opts;
             open(opts, true);
@@ -179,7 +190,39 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
         else if (ACTION_CLOSE.equals(action)) {
             this.command = "close";
+            this.interruptUpdate = true;
             disconnect();
+            return true;
+        }
+        else if (ACTION_UPDATE.equals(action)) {
+            this.command = "update";
+            this.interruptUpdate = true;
+            String data = arg_object.getString("command");
+            while (subthread != null && subthread.isAlive()) {
+                try {
+                    Thread.sleep(1);
+                } catch (Exception e) {
+                    //
+                }
+            }
+            subthread = null;
+            this.interruptUpdate = false;
+
+            subthread = new Thread() {
+                public void run () {
+                    try {
+                        update(data);
+                    } catch (Exception e) {
+                        return;
+                    }
+                }
+            };
+            subthread.start();
+            this.callbackContext.success("Update started.");
+            return true;
+        }
+        else if (ACTION_UPDATE_PROGRESS.equals(action)) {
+            this.callbackContext.success(String.valueOf(updateProgress));
             return true;
         }
         else if (ACTION_WRITE.equals(action)) {
@@ -198,6 +241,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 data += "\n";
             }
             this.command = data;
+            this.interruptUpdate = true;
             byte[] command = data.getBytes(StandardCharsets.UTF_8);
             byte[] inputData;
             inputData = command;
@@ -250,7 +294,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
         if(device == null) {
             return null;
         }
-
         UsbSerialDriver driver;
         switch (driver_type) {
             case "CdcAcmSerialDriver": {
@@ -404,6 +447,81 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
     }
 
+    private void update(String data) {
+        boolean hasWrittenStart = false;
+        updateProgress = 0;
+        String[] dataSplit = data.split("&data=")[1].split("\n")[0].split(",");
+        int index = 0;
+        boolean waiting = false;
+        updateRunning = false;
+        try {
+            while (true) {
+                if (this.interruptUpdate) {
+                    break;
+                }
+                if (!hasWrittenStart) {
+                    String header = data.split("&data=")[0] + "&data=";
+                    byte[] commandHeader = header.getBytes(StandardCharsets.UTF_8);
+                    service.write(commandHeader);
+                    hasWrittenStart = true;
+                    Thread.sleep(1);
+                    continue;
+                }
+
+                if (!waiting && !updateRunning) {
+                    if (index >= dataSplit.length) {
+                        break;
+                    }
+                    waiting = true;
+                    updateRunning = true;
+                    String block = dataSplit[index] + ",";
+                    byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
+                    service.write(commandBlock);
+                    Thread.sleep(1);
+                    continue;
+                }
+
+                if (updateNum == -1) {
+                    Thread.sleep(1);
+                    continue;
+                } else if (updateNum > -1) {
+                    index = updateNum;
+                    updateNum = -1;
+                    this.updateProgress = ((index * 90) / dataSplit.length);
+                } else {
+                    updateNum = -1;
+                }
+                waiting = false;
+            }
+            if (this.interruptUpdate) {
+                return;
+            }
+            String endCmd = "\n";
+            byte[] commandEnd = endCmd.getBytes(StandardCharsets.UTF_8);
+            service.write(commandEnd);
+            Thread.sleep(1000);
+            String updateCmd = "update\n";
+            byte[] commandUpdate = updateCmd.getBytes(StandardCharsets.UTF_8);
+            service.write(commandUpdate);
+            this.minWait = new Date().getTime();
+
+            double startDate = new Date().getTime();
+
+            while (updateNum > -3) {
+                Thread.sleep(1);
+                double now = new Date().getTime();
+                if (now > startDate + 30000) {
+                    this.updateProgress = -1;
+                    return;
+                }
+            }
+            this.updateProgress = 100;
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "Error");
+        }
+    }
+
     @Override
     public void onStop() {
         if (this.broadcastReceiver != null) {
@@ -422,58 +540,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
         for(int i = 0; i < 2; i++) {
             try {
                 Log.e(TAG, "Attempt " + i + "...");
-                if (this.broadcastReceiver != null) {
-                    try {
-                        cordova.getActivity().unregisterReceiver(this.broadcastReceiver);
-                    } catch (Exception IllegalArgumentException) {
-                        //
-                    }
-                }
-                this.broadcastReceiver = null;
-                this.broadcastReceiver = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        if(Constants.INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
-                            Boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-                            Log.d(TAG, "Granted: " + granted);
-                        }
-                    }
-                };
-                IntentFilter filter = new IntentFilter();
-                filter.addAction(Constants.INTENT_ACTION_GRANT_USB);
-                cordova.getActivity().registerReceiver(this.broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-
-                if (this.service == null) {
-                    this.service = new SerialService();
-                    this.service.attach(this);
-                }
-                Thread.sleep(100);
-
-
-
-//                disconnect();
-//                Thread.sleep(1000);
-                open(this.optsLast, false);
-                Thread.sleep(1000);
-                String data = this.command;
-                byte[] command = data.getBytes(StandardCharsets.UTF_8);
-                byte[] inputData;
-                inputData = command;
-//            for (byte b: inputData) {
-//                Log.d(TAG, String.format("%02X", b));
-//            }
-                try {
-                    service.write(inputData);
-                    this.minWait = new Date().getTime();
-                    Log.d(TAG, "" + data);
-                    if (data.equals("W") || data.startsWith("hand")) {
-                        Log.d(TAG, "COMMAND W RECEIVED");this.minWait += 1000;
-                    }
-                    return;
-                } catch (IOException e) {
-                    Log.e(TAG, "ERROR.");
-                    Thread.sleep(200);
-                }
+                open(optsLast, false);
+                return;
 
             } catch (Exception e) {
                 Log.e(TAG, "Failure.");
@@ -491,6 +559,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     @Override
     public void onSerialConnectError(Exception e) {
+        Log.d(TAG, e.getMessage());
         disconnect();
     }
 
@@ -754,6 +823,27 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         // ignore the result
                         break;
                     }
+                    case "update": {
+                        String s = new String(result, StandardCharsets.UTF_8);
+                        if (s.contains("\n")) {
+                            String numStr = s.replaceAll("[\\r\\n]", "").split("\n")[0];
+                            if (numStr.equals("Update successful.")) {
+                                updateNum = -3;
+                                this.result = new ArrayList<Byte>();
+                                break;
+                            }
+                            int num;
+                            try {
+                                num = Integer.parseInt(numStr);
+                            } catch (NumberFormatException e) {
+                                num = -2;
+                            }
+                            updateRunning = false;
+                            updateNum = num;
+                            this.result = new ArrayList<Byte>();
+                        }
+                        break;
+                    }
                     default: {
                         String s = new String(result, StandardCharsets.UTF_8);
                         if (s.contains("\n")) {
@@ -802,8 +892,61 @@ public class Serial extends CordovaPlugin implements SerialListener {
         }
     }
 
+//    private void reconnectUsbDevice() {
+//        UsbManager usbManager = (UsbManager) cordova.getActivity().getSystemService(Context.USB_SERVICE);
+//
+//        int baudrate;
+//        if (optsLast.has("baudRate")) {
+//            Object o_baudrate = optsLast.opt("baudRate"); //can be an integer Number or a hex String
+//            baudrate = o_baudrate instanceof Number ? ((Number) o_baudrate).intValue() : Integer.parseInt((String) o_baudrate, 16);
+//        } else {
+//            baudrate = 2000000;
+//        }
+//
+//        UsbSerialDriver driver = getDevice(usbManager);
+//        if(driver == null) {
+//
+//            return;
+//        }
+//        usbSerialPort = driver.getPorts().get(0);
+//        UsbDeviceConnection usbConnection = usbManager.openDevice(driver.getDevice());
+//
+//        if (!usbManager.hasPermission(driver.getDevice())) {
+//
+//            return;
+//        }
+//
+//        try {
+//            Log.d(TAG, "Attempting to open port.");
+//            usbSerialPort.open(usbConnection);
+//            try {
+//                usbSerialPort.setParameters(baudrate, 8, 1, 0);
+//            } catch (UnsupportedOperationException e) {
+//            }
+//            SerialSocket socket = new SerialSocket(cordova.getActivity().getApplicationContext(), usbConnection, usbSerialPort);
+//            Log.d(TAG, "Connecting...");
+//            service.connect(socket);
+//            Log.d(TAG, "Connected!");
+//            // usb connect is not asynchronous. connect-success and connect-error are returned immediately from socket.connect
+//            // for consistency to bluetooth/bluetooth-LE app use same SerialListener and SerialService classes
+//            Log.d(TAG, "Done");
+//
+//            Thread.sleep(10);
+////            usbSerialPort.setDTR(false);
+////            Thread.sleep(10);
+////            usbSerialPort.setRTS(false);
+////            Thread.sleep(500);
+//
+//
+//        } catch (Exception e) {
+//            onSerialConnectError(e);
+//            Log.d(TAG, "Could not open port.");
+//
+//        }
+//    }
     @Override
     public void onSerialIoError(Exception e) {
+        Log.d(TAG, e.getMessage());
         disconnect();
     }
 

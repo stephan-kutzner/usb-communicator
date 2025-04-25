@@ -28,6 +28,15 @@ const serial = {
        },
     ]);
   },
+  update: function (command, successCallback, errorCallback) {
+    cordova.exec(successCallback, errorCallback, "Serial", "updateScanner", [
+      { command: command,
+       },
+    ]);
+  },
+  updateProgress: function (successCallback, errorCallback) {
+    cordova.exec(successCallback, errorCallback, "Serial", "updateScannerProgress", []);
+  },
   close: function (successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, "Serial", "closeSerial", []);
   },
