@@ -510,7 +510,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
             while (updateNum > -3) {
                 Thread.sleep(1);
                 double now = new Date().getTime();
-                if (now > startDate + 30000) {
+                if (now > startDate + 60000) {
                     this.updateProgress = -1;
                     return;
                 }
