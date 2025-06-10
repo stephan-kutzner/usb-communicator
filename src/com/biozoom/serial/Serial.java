@@ -450,6 +450,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private void update(String data) {
         boolean hasWrittenStart = false;
         updateProgress = 0;
+        updateNum = -1;
         String[] dataSplit = data.split("&data=")[1].split("\n")[0].split(",");
         int index = 0;
         boolean waiting = false;
