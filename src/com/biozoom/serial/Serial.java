@@ -516,6 +516,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     return;
                 }
             }
+            Thread.sleep(3000);
             this.updateProgress = 100;
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
