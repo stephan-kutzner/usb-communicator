@@ -839,7 +839,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     }
                     case "update": {
                         String s = new String(result, StandardCharsets.UTF_8);
-                        if (s.contains("\n")) {
+                        if (s.contains("\n") && updateNum > -3) {
                             String numStr = s.replaceAll("[\\r\\n]", "").split("\n")[0];
                             if (numStr.equals("Update successful.")) {
                                 updateNum = -3;
