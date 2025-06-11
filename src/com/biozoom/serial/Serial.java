@@ -68,6 +68,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     private int updateNum = -1;
     private int updateProgress = 0;
+    private boolean updateFailed = false;
     private boolean updateRunning = false;
     private boolean interruptUpdate = false;
 
@@ -222,6 +223,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
             return true;
         }
         else if (ACTION_UPDATE_PROGRESS.equals(action)) {
+            if (this.updateFailed) {
+                this.callbackContext.error("Update failed.");
+                return true;
+            }
             this.callbackContext.success(String.valueOf(updateProgress));
             return true;
         }
@@ -451,6 +456,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
         boolean hasWrittenStart = false;
         updateProgress = 0;
         updateNum = -1;
+        updateFailed = false;
         String[] dataSplit = data.split("&data=")[1].split("\n")[0].split(",");
         int index = 0;
         boolean waiting = false;
@@ -517,7 +523,11 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 }
             }
             Thread.sleep(3000);
-            this.updateProgress = 100;
+            if (updateNum == -3) {
+                this.updateProgress = 100;
+            } else if (updateNum == -4) {
+                this.updateFailed = true;
+            }
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
             Log.e(TAG, "Error");
@@ -833,6 +843,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
                             String numStr = s.replaceAll("[\\r\\n]", "").split("\n")[0];
                             if (numStr.equals("Update successful.")) {
                                 updateNum = -3;
+                                this.result = new ArrayList<Byte>();
+                                break;
+                            } else if (numStr.equals("Update failed.")) {
+                                updateNum = -4;
                                 this.result = new ArrayList<Byte>();
                                 break;
                             }
