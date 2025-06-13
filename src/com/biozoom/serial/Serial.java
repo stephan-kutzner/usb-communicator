@@ -495,8 +495,6 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     index = updateNum;
                     updateNum = -1;
                     this.updateProgress = ((index * 90) / dataSplit.length);
-                } else if (updateNum == -3) {
-                    break;
                 } else {
                     updateNum = -1;
                 }
@@ -504,7 +502,8 @@ public class Serial extends CordovaPlugin implements SerialListener {
             }
             if (this.interruptUpdate) {
                 return;
-            } else if (updateNum == -3) {
+            } else if (data.split("&data=")[0].contains("update=false")) {
+                this.updateProgress = 100;
                 return;
             }
             String endCmd = "\n";
