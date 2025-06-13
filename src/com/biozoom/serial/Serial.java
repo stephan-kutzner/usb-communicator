@@ -495,12 +495,16 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     index = updateNum;
                     updateNum = -1;
                     this.updateProgress = ((index * 90) / dataSplit.length);
+                } else if (updateNum == -3) {
+                    break;
                 } else {
                     updateNum = -1;
                 }
                 waiting = false;
             }
             if (this.interruptUpdate) {
+                return;
+            } else if (updateNum == -3) {
                 return;
             }
             String endCmd = "\n";
