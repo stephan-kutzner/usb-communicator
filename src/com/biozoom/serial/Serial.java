@@ -471,7 +471,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     byte[] commandHeader = header.getBytes(StandardCharsets.UTF_8);
                     service.write(commandHeader);
                     hasWrittenStart = true;
-                    Thread.sleep(1);
+                    Thread.sleep(10);
                     continue;
                 }
 
@@ -484,7 +484,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     String block = dataSplit[index] + ",";
                     byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
                     service.write(commandBlock);
-                    Thread.sleep(1);
+                    Thread.sleep(10);
                     continue;
                 }
 
@@ -500,16 +500,16 @@ public class Serial extends CordovaPlugin implements SerialListener {
                 }
                 waiting = false;
             }
+            String endCmd = "\n";
+            byte[] commandEnd = endCmd.getBytes(StandardCharsets.UTF_8);
+            service.write(commandEnd);
+            Thread.sleep(1000);
             if (this.interruptUpdate) {
                 return;
             } else if (data.split("&data=")[0].contains("update=false")) {
                 this.updateProgress = 100;
                 return;
             }
-            String endCmd = "\n";
-            byte[] commandEnd = endCmd.getBytes(StandardCharsets.UTF_8);
-            service.write(commandEnd);
-            Thread.sleep(1000);
             String updateCmd = "update\n";
             byte[] commandUpdate = updateCmd.getBytes(StandardCharsets.UTF_8);
             service.write(commandUpdate);
