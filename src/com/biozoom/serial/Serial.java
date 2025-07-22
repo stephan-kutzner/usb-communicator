@@ -714,10 +714,10 @@ public class Serial extends CordovaPlugin implements SerialListener {
                                 break;
                             }
 
-                            if (s.contains("error")) {
-                                this.result = new ArrayList<Byte>();
-                                break;
-                            }
+//                            if (s.contains("error")) {
+//                                this.result = new ArrayList<Byte>();
+//                                break;
+//                            }
                             isMatrix = false;
                             this.resultSent = true;
                             this.callbackContext.success(s);
@@ -772,6 +772,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
                         // ignore the result
                         break;
                     }
+                    case "status\n":
                     case "status": {
                         String s = new String(result, StandardCharsets.UTF_8);
                         if (s.contains("\n")) {
