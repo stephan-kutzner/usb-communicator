@@ -250,20 +250,23 @@ public class Serial extends CordovaPlugin implements SerialListener {
             byte[] command = data.getBytes(StandardCharsets.UTF_8);
             byte[] inputData;
             inputData = command;
-            try {
-                service.write(inputData);
-                this.minWait = new Date().getTime();
-                Log.d(TAG, "" + data);
-                if (data.equals("W") || data.startsWith("hand")) {
-                    Log.d(TAG, "COMMAND W RECEIVED");
-                    this.minWait += 1000;
+            String finalData = data;
+            cordova.getThreadPool().execute(() -> {
+                try {
+                    service.write(inputData);
+                    this.minWait = new Date().getTime();
+                    Log.d(TAG, "" + finalData);
+                    if (finalData.equals("W") || finalData.startsWith("hand")) {
+                        Log.d(TAG, "COMMAND W RECEIVED");
+                        this.minWait += 1000;
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "ERROR.");
                 }
-            } catch (IOException e) {
-                Log.e(TAG, "ERROR. Retrying...");
-                this.retry();
-                return true;
-            }
-
+                PluginResult interimResult = new PluginResult(PluginResult.Status.OK, "_ok");
+                interimResult.setKeepCallback(true);
+                callbackContext.sendPluginResult(interimResult);
+            });
             return true;
         }
         return false;
@@ -897,9 +900,33 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
                             }
 
-                            isMatrix = false;
-                            this.resultSent = true;
-                            this.callbackContext.success(s);
+                            cordova.getThreadPool().execute(() -> {
+                                int chunkSize = 1024; // ToDo: Adjust if needed
+                                int len = s.length();
+
+                                for (int i = 0; i < len; i += chunkSize) {
+                                    int end = Math.min(i + chunkSize, len);
+                                    String chunk = s.substring(i, end);
+                                    if (end >= len) {
+                                        isMatrix = false;
+                                        this.resultSent = true;
+                                        this.callbackContext.success(chunk);
+                                    } else {
+                                        chunk = "_" + chunk;
+                                        PluginResult interimResult = new PluginResult(PluginResult.Status.OK, chunk);
+                                        interimResult.setKeepCallback(true);
+                                        callbackContext.sendPluginResult(interimResult);
+
+                                        try {
+                                            Thread.sleep(10); // ToDo: Adjust if needed
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+
+                                }
+                            });
+
                         }
                         break;
                     }
