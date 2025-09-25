@@ -70,6 +70,7 @@ public class Serial extends CordovaPlugin implements SerialListener {
     private int updateProgress = 0;
     private boolean updateFailed = false;
     private boolean updateRunning = false;
+    private boolean updateIsNuvoton = false;
     private boolean interruptUpdate = false;
 
     private Thread subthread;
@@ -457,82 +458,156 @@ public class Serial extends CordovaPlugin implements SerialListener {
 
     private void update(String data) {
         boolean hasWrittenStart = false;
+        boolean needsNewline = false;
+        boolean lastBlockWasNewline = false;
         updateProgress = 0;
         updateNum = -1;
         updateFailed = false;
         String[] dataSplit = data.split("&data=")[1].split("\n")[0].split(",");
+        updateIsNuvoton = data.split("&data=")[0].contains("&type=nuvoton");
         int index = 0;
         boolean waiting = false;
         updateRunning = false;
         try {
-            while (true) {
-                if (this.interruptUpdate) {
-                    break;
-                }
-                if (!hasWrittenStart) {
-                    String header = data.split("&data=")[0] + "&data=";
-                    byte[] commandHeader = header.getBytes(StandardCharsets.UTF_8);
-                    service.write(commandHeader);
-                    hasWrittenStart = true;
+            if (updateIsNuvoton) {
+                String blockRestart = "e\n";
+                byte[] commandBlockRestart = blockRestart.getBytes(StandardCharsets.UTF_8);
+                service.write(commandBlockRestart);
+                updateRunning = true;
+                while (updateRunning) {
                     Thread.sleep(10);
-                    continue;
                 }
-
-                if (!waiting && !updateRunning) {
-                    if (index >= dataSplit.length) {
+                while (true) {
+                    if (this.interruptUpdate) {
                         break;
                     }
-                    waiting = true;
-                    updateRunning = true;
-                    String block = dataSplit[index] + ",";
+                    if (!waiting && !updateRunning) {
+                        if (index % 7 == 0 && needsNewline) {
+                            waiting = true;
+                            updateRunning = true;
+                            needsNewline = false;
+                            lastBlockWasNewline = true;
+                            String block = "!\n";
+                            byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
+                            service.write(commandBlock);
+                            Thread.sleep(10);
+                            continue;
+                        }
+
+                        if (index >= dataSplit.length) {
+                            break;
+                        }
+                        waiting = true;
+                        updateRunning = true;
+                        needsNewline = true;
+                        lastBlockWasNewline = false;
+                        String block = dataSplit[index] + "\n";
+                        byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
+                        service.write(commandBlock);
+                        index += 1;
+                        Thread.sleep(10);
+                        continue;
+                    }
+
+                    if (updateNum == -1) {
+                        Thread.sleep(1);
+                        continue;
+                    } else if (updateNum == 2) {
+                        updateNum = -1;
+                        if (lastBlockWasNewline) {
+                            needsNewline = true;
+                        } else {
+                            index -= 1;
+                        }
+                    } else if (updateNum > -1) {
+                        updateNum = -1;
+                        this.updateProgress = ((index * 90) / dataSplit.length);
+                    } else {
+                        updateNum = -1;
+                    }
+                    waiting = false;
+                }
+                if (index % 7 != 0) {
+                    String block = "!\n";
                     byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
                     service.write(commandBlock);
-                    Thread.sleep(10);
-                    continue;
                 }
-
-                if (updateNum == -1) {
-                    Thread.sleep(1);
-                    continue;
-                } else if (updateNum > -1) {
-                    index = updateNum;
-                    updateNum = -1;
-                    this.updateProgress = ((index * 90) / dataSplit.length);
-                } else {
-                    updateNum = -1;
-                }
-                waiting = false;
-            }
-            String endCmd = "\n";
-            byte[] commandEnd = endCmd.getBytes(StandardCharsets.UTF_8);
-            service.write(commandEnd);
-            Thread.sleep(1000);
-            if (this.interruptUpdate) {
-                return;
-            } else if (data.split("&data=")[0].contains("update=false")) {
+                Thread.sleep(1000);
+                String updateCmd = "R\n";
+                byte[] commandUpdate = updateCmd.getBytes(StandardCharsets.UTF_8);
+                service.write(commandUpdate);
+                Thread.sleep(5000);
                 this.updateProgress = 100;
-                return;
-            }
-            String updateCmd = "update\n";
-            byte[] commandUpdate = updateCmd.getBytes(StandardCharsets.UTF_8);
-            service.write(commandUpdate);
-            this.minWait = new Date().getTime();
+            } else {
+                while (true) {
+                    if (this.interruptUpdate) {
+                        break;
+                    }
+                    if (!hasWrittenStart) {
+                        String header = data.split("&data=")[0] + "&data=";
+                        byte[] commandHeader = header.getBytes(StandardCharsets.UTF_8);
+                        service.write(commandHeader);
+                        hasWrittenStart = true;
+                        Thread.sleep(10);
+                        continue;
+                    }
 
-            double startDate = new Date().getTime();
+                    if (!waiting && !updateRunning) {
+                        if (index >= dataSplit.length) {
+                            break;
+                        }
+                        waiting = true;
+                        updateRunning = true;
+                        String block = dataSplit[index] + ",";
+                        byte[] commandBlock = block.getBytes(StandardCharsets.UTF_8);
+                        service.write(commandBlock);
+                        Thread.sleep(10);
+                        continue;
+                    }
 
-            while (updateNum > -3) {
-                Thread.sleep(1);
-                double now = new Date().getTime();
-                if (now > startDate + 60000) {
-                    this.updateProgress = -1;
+                    if (updateNum == -1) {
+                        Thread.sleep(1);
+                        continue;
+                    } else if (updateNum > -1) {
+                        index = updateNum;
+                        updateNum = -1;
+                        this.updateProgress = ((index * 90) / dataSplit.length);
+                    } else {
+                        updateNum = -1;
+                    }
+                    waiting = false;
+                }
+                String endCmd = "\n";
+                byte[] commandEnd = endCmd.getBytes(StandardCharsets.UTF_8);
+                service.write(commandEnd);
+                Thread.sleep(1000);
+                if (this.interruptUpdate) {
+                    return;
+                } else if (data.split("&data=")[0].contains("update=false")) {
+                    this.updateProgress = 100;
                     return;
                 }
-            }
-            Thread.sleep(3000);
-            if (updateNum == -3) {
-                this.updateProgress = 100;
-            } else if (updateNum == -4) {
-                this.updateFailed = true;
+                String updateCmd = "update\n";
+                byte[] commandUpdate = updateCmd.getBytes(StandardCharsets.UTF_8);
+                service.write(commandUpdate);
+                this.minWait = new Date().getTime();
+
+                double startDate = new Date().getTime();
+
+                while (updateNum > -3) {
+                    Thread.sleep(1);
+                    double now = new Date().getTime();
+                    if (now > startDate + 60000) {
+                        this.updateProgress = -1;
+                        return;
+                    }
+                }
+                Thread.sleep(3000);
+                if (updateNum == -3) {
+                    this.updateProgress = 100;
+                } else if (updateNum == -4) {
+                    this.updateFailed = true;
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
@@ -847,25 +922,44 @@ public class Serial extends CordovaPlugin implements SerialListener {
                     case "update": {
                         String s = new String(result, StandardCharsets.UTF_8);
                         if (s.contains("\n") && updateNum > -3) {
-                            String numStr = s.replaceAll("[\\r\\n]", "").split("\n")[0];
-                            if (numStr.equals("Update successful.")) {
-                                updateNum = -3;
+                            if (updateIsNuvoton) {
+                                try {
+                                    JSONObject obj = new JSONObject(s);
+                                    if (obj.has("success")) {
+                                        boolean success = obj.getBoolean("success");
+                                        if (success) {
+                                            updateRunning = false;
+                                            updateNum = 1;
+                                            this.result = new ArrayList<Byte>();
+                                        } else {
+                                            updateRunning = false;
+                                            updateNum = 2;
+                                            this.result = new ArrayList<Byte>();
+                                        }
+                                    }
+                                } catch (Exception ex) {
+                                }
+                            } else {
+                                String numStr = s.replaceAll("[\\r\\n]", "").split("\n")[0];
+                                if (numStr.equals("Update successful.")) {
+                                    updateNum = -3;
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                } else if (numStr.equals("Update failed.")) {
+                                    updateNum = -4;
+                                    this.result = new ArrayList<Byte>();
+                                    break;
+                                }
+                                int num;
+                                try {
+                                    num = Integer.parseInt(numStr);
+                                } catch (NumberFormatException e) {
+                                    num = -2;
+                                }
+                                updateRunning = false;
+                                updateNum = num;
                                 this.result = new ArrayList<Byte>();
-                                break;
-                            } else if (numStr.equals("Update failed.")) {
-                                updateNum = -4;
-                                this.result = new ArrayList<Byte>();
-                                break;
                             }
-                            int num;
-                            try {
-                                num = Integer.parseInt(numStr);
-                            } catch (NumberFormatException e) {
-                                num = -2;
-                            }
-                            updateRunning = false;
-                            updateNum = num;
-                            this.result = new ArrayList<Byte>();
                         }
                         break;
                     }
